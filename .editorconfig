@@ -1,0 +1,83 @@
+# EditorConfig - 프로젝트 전체 코드 스타일 설정
+# https://editorconfig.org
+
+root = true
+
+# 모든 파일 기본 설정
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Kotlin 파일 스타일
+[*.{kt,kts}]
+indent_style = space
+indent_size = 4
+continuation_indent_size = 4
+max_line_length = 120
+
+# Kotlin 코드 스타일 (간결하고 깔끔한 스타일)
+ij_kotlin_code_style_defaults = KOTLIN_OFFICIAL
+
+# 줄바꿈 및 괄호
+ij_kotlin_line_break_after_multiline_when_entry = true
+ij_kotlin_wrap_expression_body_functions = 0
+ij_kotlin_wrap_first_method_in_call_chain = false
+
+# 파라미터 설정 (핵심! - 짧은 함수는 한 줄로)
+ij_kotlin_method_parameters_wrap = off
+ij_kotlin_method_parameters_new_line_after_left_paren = false
+ij_kotlin_method_parameters_right_paren_on_new_line = false
+ij_kotlin_method_call_chain_wrap = off
+
+# 함수 호출 인자 (짧으면 한 줄)
+ij_kotlin_call_parameters_wrap = off
+ij_kotlin_call_parameters_new_line_after_left_paren = false
+ij_kotlin_call_parameters_right_paren_on_new_line = false
+
+# 변수 선언 간결하게
+ij_kotlin_assignment_wrap = off
+ij_kotlin_variable_annotation_wrap = off
+
+# 주석 스타일
+ij_kotlin_line_comment_at_first_column = false
+ij_kotlin_line_comment_add_space = true
+ij_kotlin_block_comment_at_first_column = false
+ij_kotlin_block_comment_add_space = true
+
+# 공백 설정
+ij_kotlin_spaces_before_comma = false
+ij_kotlin_spaces_after_comma = true
+ij_kotlin_spaces_around_assignment_operators = true
+ij_kotlin_spaces_around_equality_operators = true
+ij_kotlin_spaces_around_relational_operators = true
+ij_kotlin_spaces_around_logical_operators = true
+ij_kotlin_spaces_around_additive_operators = true
+ij_kotlin_spaces_around_multiplicative_operators = true
+
+# import 설정
+ij_kotlin_name_count_to_use_star_import = 999
+ij_kotlin_name_count_to_use_star_import_for_members = 999
+ij_kotlin_packages_to_use_import_on_demand = unset
+
+# 빈 줄 설정
+ij_kotlin_blank_lines_after_class_header = 0
+ij_kotlin_blank_lines_around_block_when_branches = 0
+ij_kotlin_blank_lines_before_declaration_with_comment_or_annotation_on_separate_line = 1
+
+# Gradle 파일
+[*.gradle.kts]
+indent_size = 4
+
+# XML 파일 (Android layouts)
+[*.xml]
+indent_size = 4
+
+# JSON 파일
+[*.json]
+indent_size = 2
+
+# YAML 파일
+[*.{yml,yaml}]
+indent_size = 2
