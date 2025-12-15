@@ -61,12 +61,12 @@ fun InputDisplay(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(24.dp), // 토스 스타일: 넉넉한 패딩
+                .padding(12.dp), // 토스 스타일: 넉넉한 패딩
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = if (maskedText.isEmpty()) "입력 대기" else maskedText,
-                fontSize = 36.sp,              // 토스 스타일: 더 큰 폰트
+                fontSize = 24.sp,              // 토스 스타일: 더 큰 폰트
                 fontWeight = FontWeight.Medium, // 토스 스타일: 중간 두께
                 color = colors.inputDisplayTextColor,
                 textAlign = TextAlign.Center,

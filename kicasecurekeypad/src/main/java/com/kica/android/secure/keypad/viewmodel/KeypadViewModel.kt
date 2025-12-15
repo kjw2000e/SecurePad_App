@@ -2,9 +2,14 @@ package com.kica.android.secure.keypad.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.kica.android.secure.keypad.data.layout.EnglishLayout
+import com.kica.android.secure.keypad.data.layout.KoreanLayout
+import com.kica.android.secure.keypad.data.layout.NumericLayout
 import com.kica.android.secure.keypad.domain.model.Key
 import com.kica.android.secure.keypad.domain.model.KeyType
 import com.kica.android.secure.keypad.domain.model.KeypadConfig
+import com.kica.android.secure.keypad.domain.model.KeypadType
+import com.kica.android.secure.keypad.utils.HangulAssembler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,15 +21,39 @@ import kotlinx.coroutines.launch
  * 입력 상태 관리 및 비즈니스 로직 처리
  */
 class KeypadViewModel(
-    private val config: KeypadConfig
+    initialConfig: KeypadConfig
 ) : ViewModel() {
 
+    // Config (변경 가능)
+    private var config: KeypadConfig = initialConfig
+
     // 실제 입력값 (평문) - 내부에서만 사용
-    private val inputBuffer = mutableListOf<Char>()
+    private val inputBuffer = StringBuilder()
+
+    // 한글 조립기
+    private val hangulAssembler = HangulAssembler()
 
     // 마스킹된 입력값 (UI에 표시)
     private val _maskedInput = MutableStateFlow("")
     val maskedInput: StateFlow<String> = _maskedInput.asStateFlow()
+
+    // 현재 언어 (ENGLISH/KOREAN 전환용)
+    private val _currentLanguage = MutableStateFlow(
+        when (config.type) {
+            KeypadType.ENGLISH -> KeypadType.ENGLISH
+            KeypadType.KOREAN -> KeypadType.KOREAN
+            else -> KeypadType.ENGLISH
+        }
+    )
+    val currentLanguage: StateFlow<KeypadType> = _currentLanguage.asStateFlow()
+
+    // Shift 상태 (대문자/쌍자음)
+    private val _isShifted = MutableStateFlow(false)
+    val isShifted: StateFlow<Boolean> = _isShifted.asStateFlow()
+
+    // 키 목록
+    private val _keys = MutableStateFlow<List<Key>>(emptyList())
+    val keys: StateFlow<List<Key>> = _keys.asStateFlow()
 
     // 진동 피드백 트리거
     private val _shouldVibrate = MutableStateFlow(false)
@@ -33,6 +62,14 @@ class KeypadViewModel(
     // 에러 메시지
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+
+    // 숫자 섞기 상태 (NUMERIC 타입용)
+    private var shuffledNumbers: List<Int>? = null
+
+    init {
+        // 초기 키 목록 로드
+        loadKeys()
+    }
 
     /**
      * 키 입력 처리
@@ -43,16 +80,64 @@ class KeypadViewModel(
         viewModelScope.launch {
             when (key.type) {
                 KeyType.NORMAL -> {
-                    // 최대 길이 체크
-                    val maxLength = config.maxLength
-                    if (maxLength != null && inputBuffer.size >= maxLength) {
-                        _errorMessage.value = "최대 ${maxLength}자리까지 입력 가능합니다"
-                        triggerErrorFeedback()
-                        return@launch
+                    val char = key.value[0]
+
+                    // 한글인 경우 조립 처리
+                    val isKorean = config.type == KeypadType.KOREAN ||
+                            (config.type == KeypadType.ALPHANUMERIC && _currentLanguage.value == KeypadType.KOREAN)
+
+                    if (isKorean) {
+                        // append() 호출 전에 조립 상태 저장
+                        val wasComposing = hangulAssembler.isComposing()
+
+                        // 한글 조립
+                        val assembled = hangulAssembler.append(char)
+
+                        // 최대 길이 체크
+                        val expectedLength = if (wasComposing) {
+                            inputBuffer.length - 1 + assembled.length
+                        } else {
+                            inputBuffer.length + assembled.length
+                        }
+
+                        val maxLength = config.maxLength
+                        if (maxLength != null && expectedLength > maxLength) {
+                            _errorMessage.value = "최대 ${maxLength}자리까지 입력 가능합니다"
+                            triggerErrorFeedback()
+                            return@launch
+                        }
+
+                        // 조립된 문자열 처리
+                        if (assembled.isNotEmpty()) {
+                            if (wasComposing) {
+                                // 이전에 조립 중이던 글자를 제거하고 새로운 결과로 대체
+                                if (inputBuffer.isNotEmpty()) {
+                                    inputBuffer.deleteCharAt(inputBuffer.lastIndex)
+                                }
+                            }
+                            inputBuffer.append(assembled)
+                        }
+                    } else {
+                        // 한글이 아닌 경우 (영문, 숫자 등)
+                        val maxLength = config.maxLength
+                        if (maxLength != null && inputBuffer.length >= maxLength) {
+                            _errorMessage.value = "최대 ${maxLength}자리까지 입력 가능합니다"
+                            triggerErrorFeedback()
+                            return@launch
+                        }
+
+                        // 조립 중인 한글이 있으면 완성
+                        if (hangulAssembler.isComposing()) {
+                            val completed = hangulAssembler.commit()
+                            if (completed.isNotEmpty() && inputBuffer.isNotEmpty()) {
+                                inputBuffer.deleteCharAt(inputBuffer.lastIndex)
+                                inputBuffer.append(completed)
+                            }
+                        }
+
+                        inputBuffer.append(char)
                     }
 
-                    // 입력 추가
-                    inputBuffer.add(key.value[0])
                     updateMaskedDisplay()
 
                     // 진동 피드백
@@ -69,8 +154,48 @@ class KeypadViewModel(
                     // 완료는 UI에서 처리
                 }
 
+                KeyType.SPACE -> {
+                    // 최대 길이 체크
+                    val maxLength = config.maxLength
+                    if (maxLength != null && inputBuffer.length >= maxLength) {
+                        _errorMessage.value = "최대 ${maxLength}자리까지 입력 가능합니다"
+                        triggerErrorFeedback()
+                        return@launch
+                    }
+
+                    // 조립 중인 한글이 있으면 완성
+                    if (hangulAssembler.isComposing()) {
+                        val completed = hangulAssembler.commit()
+                        if (completed.isNotEmpty() && inputBuffer.isNotEmpty()) {
+                            inputBuffer.deleteCharAt(inputBuffer.lastIndex)
+                            inputBuffer.append(completed)
+                        }
+                    }
+
+                    // 공백 추가
+                    inputBuffer.append(' ')
+                    updateMaskedDisplay()
+
+                    // 진동 피드백
+                    if (config.enableHapticFeedback) {
+                        triggerVibration()
+                    }
+                }
+
+                KeyType.SWITCH -> {
+                    handleLanguageSwitch()
+                }
+
+                KeyType.SHIFT -> {
+                    handleShift()
+                }
+
+                KeyType.SHUFFLE -> {
+                    handleShuffle()
+                }
+
                 else -> {
-                    // 다른 타입 (SPACE, SWITCH 등)은 추후 구현
+                    // 처리되지 않은 타입
                 }
             }
         }
@@ -81,14 +206,31 @@ class KeypadViewModel(
      */
     fun handleBackspace() {
         viewModelScope.launch {
-            if (inputBuffer.isNotEmpty()) {
-                inputBuffer.removeLast()
-                updateMaskedDisplay()
+            if (inputBuffer.isEmpty()) return@launch
 
-                // 진동 피드백
-                if (config.enableHapticFeedback) {
-                    triggerVibration()
+            // 한글 조립 중이면 조립 상태 되돌리기
+            val (handled, result) = hangulAssembler.backspace()
+
+            if (handled) {
+                // 조립 중인 글자 수정
+                if (inputBuffer.isNotEmpty()) {
+                    inputBuffer.deleteCharAt(inputBuffer.lastIndex)
                 }
+                if (result.isNotEmpty()) {
+                    inputBuffer.append(result)
+                }
+            } else {
+                // 이전 글자 삭제
+                if (inputBuffer.isNotEmpty()) {
+                    inputBuffer.deleteCharAt(inputBuffer.lastIndex)
+                }
+            }
+
+            updateMaskedDisplay()
+
+            // 진동 피드백
+            if (config.enableHapticFeedback) {
+                triggerVibration()
             }
         }
     }
@@ -97,7 +239,11 @@ class KeypadViewModel(
      * 마스킹된 표시 업데이트
      */
     private fun updateMaskedDisplay() {
-        _maskedInput.value = config.maskingChar.toString().repeat(inputBuffer.size)
+        _maskedInput.value = if (config.showMasking) {
+            config.maskingChar.toString().repeat(inputBuffer.length)
+        } else {
+            inputBuffer.toString()
+        }
     }
 
     /**
@@ -106,7 +252,16 @@ class KeypadViewModel(
      * @return 입력된 문자열
      */
     fun getInputValue(): String {
-        return inputBuffer.joinToString("")
+        // 조립 중인 한글 완성
+        var result = inputBuffer.toString()
+        if (hangulAssembler.isComposing()) {
+            val completed = hangulAssembler.commit()
+            if (result.isNotEmpty() && completed.isNotEmpty()) {
+                result = result.dropLast(1) + completed
+            }
+            // 조립 상태는 유지 (다시 조립 가능하도록)
+        }
+        return result
     }
 
     /**
@@ -115,6 +270,7 @@ class KeypadViewModel(
     fun clearInput() {
         viewModelScope.launch {
             inputBuffer.clear()
+            hangulAssembler.clear()
             updateMaskedDisplay()
             _errorMessage.value = null
         }
@@ -147,6 +303,149 @@ class KeypadViewModel(
      */
     fun clearErrorMessage() {
         _errorMessage.value = null
+    }
+
+    /**
+     * 키 목록 로드
+     *
+     * 현재 설정(타입, 언어, Shift 상태)에 따라 키 목록 생성
+     */
+    private fun loadKeys() {
+        viewModelScope.launch {
+            _keys.value = when (config.type) {
+                KeypadType.NUMERIC -> {
+                    NumericLayout.getKeys(shuffledNumbers)
+                }
+
+                KeypadType.ENGLISH -> {
+                    EnglishLayout.getKeys(
+                        uppercase = _isShifted.value,
+                        randomize = config.randomizeLayout
+                    )
+                }
+
+                KeypadType.KOREAN -> {
+                    KoreanLayout.getKeys(
+                        shifted = _isShifted.value,
+                        randomize = config.randomizeLayout
+                    )
+                }
+
+                KeypadType.ALPHANUMERIC -> {
+                    // 현재 언어에 따라 분기
+                    when (_currentLanguage.value) {
+                        KeypadType.ENGLISH -> EnglishLayout.getKeys(
+                            uppercase = _isShifted.value,
+                            randomize = config.randomizeLayout
+                        )
+
+                        KeypadType.KOREAN -> KoreanLayout.getKeys(
+                            shifted = _isShifted.value,
+                            randomize = config.randomizeLayout
+                        )
+
+                        else -> NumericLayout.getKeys(shuffledNumbers)
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * 숫자 재배열 처리
+     */
+    private fun handleShuffle() {
+        viewModelScope.launch {
+            if (config.type == KeypadType.NUMERIC) {
+                // 0-9 숫자를 랜덤하게 섞기
+                shuffledNumbers = (0..9).shuffled()
+
+                // 키 목록 다시 로드
+                loadKeys()
+
+                // 진동 피드백
+                if (config.enableHapticFeedback) {
+                    triggerVibration()
+                }
+            }
+        }
+    }
+
+    /**
+     * 언어 전환 처리 (한/영)
+     */
+    private fun handleLanguageSwitch() {
+        viewModelScope.launch {
+            // ALPHANUMERIC 타입만 언어 전환 가능
+            if (config.type == KeypadType.ALPHANUMERIC) {
+                _currentLanguage.value = when (_currentLanguage.value) {
+                    KeypadType.ENGLISH -> KeypadType.KOREAN
+                    KeypadType.KOREAN -> KeypadType.ENGLISH
+                    else -> KeypadType.ENGLISH
+                }
+
+                // Shift 상태 초기화
+                _isShifted.value = false
+
+                // 키 목록 다시 로드
+                loadKeys()
+
+                // 진동 피드백
+                if (config.enableHapticFeedback) {
+                    triggerVibration()
+                }
+            }
+        }
+    }
+
+    /**
+     * Shift 토글 처리
+     */
+    private fun handleShift() {
+        viewModelScope.launch {
+            _isShifted.value = !_isShifted.value
+
+            // 키 목록 다시 로드
+            loadKeys()
+
+            // 진동 피드백
+            if (config.enableHapticFeedback) {
+                triggerVibration()
+            }
+        }
+    }
+
+    /**
+     * Config 업데이트
+     *
+     * 키패드 타입이 변경되면 입력 초기화 및 키 목록 재로드
+     */
+    fun updateConfig(newConfig: KeypadConfig) {
+        val typeChanged = config.type != newConfig.type
+        config = newConfig
+
+        if (typeChanged) {
+            // 타입이 변경되면 입력 초기화
+            inputBuffer.clear()
+            hangulAssembler.clear()
+            updateMaskedDisplay()
+
+            // 언어 상태 초기화
+            _currentLanguage.value = when (config.type) {
+                KeypadType.ENGLISH -> KeypadType.ENGLISH
+                KeypadType.KOREAN -> KeypadType.KOREAN
+                else -> KeypadType.ENGLISH
+            }
+
+            // Shift 상태 초기화
+            _isShifted.value = false
+
+            // 숫자 섞기 상태 초기화
+            shuffledNumbers = null
+
+            // 키 목록 재로드
+            loadKeys()
+        }
     }
 
     /**

@@ -17,5 +17,11 @@ enum class KeyType {
     SPACE,
 
     /** 언어 전환 (한/영) */
-    SWITCH
+    SWITCH,
+
+    /** Shift (대소문자 전환) */
+    SHIFT,
+
+    /** 재배열 (숫자 키패드 섞기) */
+    SHUFFLE
 }

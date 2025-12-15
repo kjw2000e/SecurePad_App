@@ -1,5 +1,6 @@
 package com.kica.android.secure.keypad.ui
 
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,21 +27,23 @@ import com.kica.android.secure.keypad.domain.model.KeypadColors
  * @param colors 색상 테마
  * @param onClick 클릭 콜백
  * @param modifier Modifier
+ * @param useAspectRatio 1:1 비율 사용 여부 (숫자 키패드: true, 영문/한글: false)
  */
 @Composable
 fun KeypadButton(
     key: Key,
     colors: KeypadColors,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    useAspectRatio: Boolean = true
 ) {
     val isSpecialKey = key.type != KeyType.NORMAL
 
     Button(
         onClick = onClick,
         modifier = modifier
-            .aspectRatio(1f)
-            .padding(6.dp) // 토스 스타일: 간격 넓게
+            .then(if (useAspectRatio) Modifier.aspectRatio(1f) else Modifier)
+            .padding(1.dp) // 간격 최소화
             .semantics {
                 // 접근성 지원
                 contentDescription = when (key.type) {
@@ -49,15 +52,18 @@ fun KeypadButton(
                     KeyType.SPACE -> "스페이스"
                     KeyType.COMPLETE -> "완료"
                     KeyType.SWITCH -> "언어 전환"
+                    KeyType.SHIFT -> "대소문자 전환"
+                    KeyType.SHUFFLE -> "재배열"
                 }
                 role = Role.Button
             },
-        shape = RoundedCornerShape(16.dp), // 토스 스타일: 둥근 모서리
+        shape = RoundedCornerShape(6.dp),
         elevation = ButtonDefaults.buttonElevation(
-            defaultElevation = 1.dp,       // 토스 스타일: 미니멀한 그림자
+            defaultElevation = 0.dp,
             pressedElevation = 0.dp,
             disabledElevation = 0.dp
         ),
+        contentPadding = PaddingValues(2.dp), // 버튼 내부 패딩 최소화
         colors = ButtonDefaults.buttonColors(
             containerColor = if (isSpecialKey) {
                 colors.specialKeyBackgroundColor
@@ -73,8 +79,9 @@ fun KeypadButton(
     ) {
         Text(
             text = key.displayText,
-            fontSize = 28.sp,              // 토스 스타일: 큰 폰트
-            fontWeight = FontWeight.Medium // 토스 스타일: 중간 두께
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Medium,
+            maxLines = 1
         )
     }
 }

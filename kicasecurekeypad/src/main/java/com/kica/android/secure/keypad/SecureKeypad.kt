@@ -4,24 +4,27 @@ import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.kica.android.secure.keypad.data.layout.NumericLayout
+import com.kica.android.secure.keypad.data.layout.EnglishLayout
+import com.kica.android.secure.keypad.data.layout.KoreanLayout
+import com.kica.android.secure.keypad.domain.model.Key
 import com.kica.android.secure.keypad.domain.model.KeyType
+import com.kica.android.secure.keypad.domain.model.KeypadColors
 import com.kica.android.secure.keypad.domain.model.KeypadConfig
+import com.kica.android.secure.keypad.domain.model.KeypadType
 import com.kica.android.secure.keypad.ui.InputDisplay
 import com.kica.android.secure.keypad.ui.KeypadButton
 import com.kica.android.secure.keypad.viewmodel.KeypadViewModel
@@ -48,15 +51,17 @@ fun SecureKeypad(
         factory = KeypadViewModelFactory(config)
     )
 
+    // Config 변경 감지 및 ViewModel 업데이트
+    LaunchedEffect(config.type) {
+        viewModel.updateConfig(config)
+    }
+
     // 상태 관찰
     val maskedInput by viewModel.maskedInput.collectAsState()
     val shouldVibrate by viewModel.shouldVibrate.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
-
-    // 키 레이아웃 가져오기
-    val keys = remember(config.randomizeLayout) {
-        NumericLayout.getKeys(randomize = config.randomizeLayout)
-    }
+    val keys by viewModel.keys.collectAsState()
+    val currentLanguage by viewModel.currentLanguage.collectAsState()
 
     // View 참조 (진동 피드백용)
     val view = LocalView.current
@@ -92,8 +97,9 @@ fun SecureKeypad(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .navigationBarsPadding() // 네비게이션 바 영역만큼 패딩 추가
             .background(config.colors.backgroundColor)
-            .padding(20.dp) // 토스 스타일: 넉넉한 외부 패딩
+            .padding(horizontal = 8.dp, vertical = 12.dp) // 좌우 패딩 줄임
     ) {
         // 입력 표시 영역
         InputDisplay(
@@ -101,37 +107,181 @@ fun SecureKeypad(
             colors = config.colors,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 24.dp) // 토스 스타일: 입력창과 키패드 간격 증가
+                .padding(bottom = 12.dp) // 간격 줄임
         )
 
-        // 키패드 그리드
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(3),
-            horizontalArrangement = Arrangement.spacedBy(4.dp), // 토스 스타일: 버튼 간격 조정 (padding 6dp와 조합)
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            items(
-                items = keys,
-                key = { key -> key.displayText }
-            ) { key ->
-                KeypadButton(
-                    key = key,
+        // 키패드 레이아웃
+        when (config.type) {
+            KeypadType.NUMERIC -> {
+                // 숫자 키패드: 확인 버튼 + 3열 고정 그리드
+                NumericKeypadWithConfirm(
+                    keys = keys,
                     colors = config.colors,
-                    onClick = {
-                        when (key.type) {
-                            KeyType.COMPLETE -> {
-                                // 완료 처리
-                                val inputValue = viewModel.getInputValue()
-                                onComplete(inputValue)
-                            }
-                            else -> {
-                                // 일반 키 입력 처리
-                                viewModel.handleKeyPress(key)
-                            }
-                        }
-                    }
+                    config = config,
+                    viewModel = viewModel,
+                    onComplete = onComplete
                 )
+            }
+
+            KeypadType.ENGLISH, KeypadType.KOREAN, KeypadType.ALPHANUMERIC -> {
+                // 영문/한글 키패드: 각 행마다 다른 열 수
+                AlphabeticKeypadLayout(
+                    keys = keys,
+                    colors = config.colors,
+                    config = config,
+                    keypadType = if (config.type == KeypadType.ALPHANUMERIC) currentLanguage else config.type,
+                    viewModel = viewModel,
+                    onComplete = onComplete
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 숫자 키패드와 확인 버튼
+ */
+@Composable
+private fun NumericKeypadWithConfirm(
+    keys: List<Key>,
+    colors: KeypadColors,
+    config: KeypadConfig,
+    viewModel: KeypadViewModel,
+    onComplete: (String) -> Unit
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+
+        // 숫자 키패드
+        NumericKeypadLayout(
+            keys = keys,
+            colors = colors,
+            config = config,
+            viewModel = viewModel
+        )
+
+        // 확인 버튼
+        KeypadButton(
+            key = Key(
+                value = "",
+                displayText = "확인",
+                type = KeyType.COMPLETE
+            ),
+            colors = colors,
+            onClick = {
+                val inputValue = viewModel.getInputValue()
+                onComplete(inputValue)
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(config.buttonHeight),
+            useAspectRatio = false
+        )
+
+    }
+}
+
+/**
+ * 숫자 키패드 레이아웃 (3열 고정 그리드)
+ */
+@Composable
+private fun NumericKeypadLayout(
+    keys: List<Key>,
+    colors: KeypadColors,
+    config: KeypadConfig,
+    viewModel: KeypadViewModel
+) {
+    // 키를 3개씩 묶어서 행으로 분할
+    val rows = keys.chunked(3)
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        rows.forEach { rowKeys ->
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                rowKeys.forEach { key ->
+                    KeypadButton(
+                        key = key,
+                        colors = colors,
+                        onClick = {
+                            viewModel.handleKeyPress(key)
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(config.buttonHeight),
+                        useAspectRatio = false
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 영문/한글 키패드 레이아웃 (행마다 다른 열 수)
+ */
+@Composable
+private fun AlphabeticKeypadLayout(
+    keys: List<Key>,
+    colors: KeypadColors,
+    config: KeypadConfig,
+    keypadType: KeypadType,
+    viewModel: KeypadViewModel,
+    onComplete: (String) -> Unit
+) {
+    // 각 행의 키 개수
+    val rowSizes = when (keypadType) {
+        KeypadType.ENGLISH -> EnglishLayout.rowSizes
+        KeypadType.KOREAN -> KoreanLayout.rowSizes
+        else -> listOf(10, 9, 9, 3)
+    }
+
+    // 키를 행별로 분할
+    val rows = mutableListOf<List<Key>>()
+    var startIndex = 0
+    rowSizes.forEach { size ->
+        if (startIndex + size <= keys.size) {
+            rows.add(keys.subList(startIndex, startIndex + size))
+            startIndex += size
+        }
+    }
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(4.dp), // 행 간격 줄임
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        rows.forEach { rowKeys ->
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(2.dp), // 버튼 간격 줄임
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                rowKeys.forEach { key ->
+                    KeypadButton(
+                        key = key,
+                        colors = colors,
+                        onClick = {
+                            when (key.type) {
+                                KeyType.COMPLETE -> {
+                                    val inputValue = viewModel.getInputValue()
+                                    onComplete(inputValue)
+                                }
+                                else -> {
+                                    viewModel.handleKeyPress(key)
+                                }
+                            }
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(config.buttonHeight), // config에서 높이 가져오기
+                        useAspectRatio = false // 영문/한글 키패드는 1:1 비율 사용 안함
+                    )
+                }
             }
         }
     }

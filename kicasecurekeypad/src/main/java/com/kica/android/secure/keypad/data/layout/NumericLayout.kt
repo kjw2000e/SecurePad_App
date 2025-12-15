@@ -14,7 +14,7 @@ import com.kica.android.secure.keypad.domain.model.KeyType
  * ├─────┼─────┼─────┤
  * │  7  │  8  │  9  │
  * ├─────┼─────┼─────┤
- * │  ⌫  │  0  │  ✓  │
+ * │  🔀 │  0  │  ⌫  │
  * └─────┴─────┴─────┘
  */
 object NumericLayout {
@@ -22,13 +22,13 @@ object NumericLayout {
     /**
      * 숫자 키패드 키 목록 가져오기
      *
-     * @param randomize 레이아웃 랜덤화 여부
+     * @param shuffledNumbers 섞인 숫자 목록 (null이면 기본 순서)
      * @return 키 목록 (3x4 = 12개)
      */
-    fun getKeys(randomize: Boolean = false): List<Key> {
-        val numberKeys = if (randomize) {
-            // 0-9 숫자 랜덤화
-            (0..9).shuffled().map { num ->
+    fun getKeys(shuffledNumbers: List<Int>? = null): List<Key> {
+        val numberKeys = if (shuffledNumbers != null) {
+            // 전달받은 순서로 배치 (0-9 모두 섞임)
+            shuffledNumbers.map { num ->
                 Key(
                     value = num.toString(),
                     displayText = num.toString(),
@@ -51,23 +51,23 @@ object NumericLayout {
             )
         }
 
-        // 1-9 배치
-        val result = numberKeys.filter { it.value != "0" }.toMutableList()
+        // 0-9 모두 배치 (처음 9개는 1~3행에 배치됨)
+        val result = numberKeys.take(9).toMutableList()
 
-        // 마지막 줄: 백스페이스, 0, 완료
+        // 마지막 줄: 재배열, 마지막 숫자(10번째), 백스페이스₩
+        result.add(
+            Key(
+                value = "",
+                displayText = "🔀",
+                type = KeyType.SHUFFLE
+            )
+        )
+        result.add(numberKeys[9])  // 10번째 숫자 (재배열 시 바뀜)
         result.add(
             Key(
                 value = "",
                 displayText = "⌫",
                 type = KeyType.BACKSPACE
-            )
-        )
-        result.add(numberKeys.first { it.value == "0" })
-        result.add(
-            Key(
-                value = "",
-                displayText = "✓",
-                type = KeyType.COMPLETE
             )
         )
 

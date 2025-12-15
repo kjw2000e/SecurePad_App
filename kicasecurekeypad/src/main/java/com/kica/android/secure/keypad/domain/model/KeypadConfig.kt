@@ -1,5 +1,8 @@
 package com.kica.android.secure.keypad.domain.model
 
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+
 /**
  * 키패드 설정
  */
@@ -12,6 +15,9 @@ data class KeypadConfig(
 
     /** 마스킹 문자 */
     val maskingChar: Char = '●',
+
+    /** 마스킹 표시 여부 (false면 실제 입력 표시) */
+    val showMasking: Boolean = true,
 
     /** 최대 입력 길이 (null이면 무제한) */
     val maxLength: Int? = null,
@@ -29,5 +35,8 @@ data class KeypadConfig(
     val enableSoundFeedback: Boolean = false,
 
     /** 접근성 활성화 */
-    val enableAccessibility: Boolean = true
+    val enableAccessibility: Boolean = true,
+
+    /** 버튼 높이 (앱단에서 조정 가능) */
+    val buttonHeight: Dp = 48.dp
 )

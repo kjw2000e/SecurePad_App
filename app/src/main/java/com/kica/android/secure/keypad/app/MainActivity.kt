@@ -6,16 +6,20 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -28,6 +32,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.kica.android.secure.keypad.SecureKeypad
 import com.kica.android.secure.keypad.domain.model.KeypadConfig
@@ -51,6 +56,7 @@ class MainActivity : AppCompatActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SampleScreen() {
+    var selectedKeypadType by remember { mutableStateOf<KeypadType?>(null) }
     var maskedInput by remember { mutableStateOf("") }
     var actualInput by remember { mutableStateOf("") }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -62,7 +68,44 @@ fun SampleScreen() {
                 title = { Text(text = "보안 키패드 데모") }
             )
         },
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        bottomBar = {
+            // 키패드를 하단에 고정
+            selectedKeypadType?.let { keypadType ->
+                SecureKeypad(
+                    modifier = Modifier.fillMaxWidth(),
+                    config = KeypadConfig(
+                        type = keypadType,
+                        colors = KeypadColors.toss(),
+                        maskingChar = '●',
+                        showMasking = false,
+                        maxLength = if (keypadType == KeypadType.NUMERIC) 6 else 20,
+                        randomizeLayout = false,
+                        enableHapticFeedback = true
+                    ),
+                    onKeyPressed = { masked ->
+                        maskedInput = masked
+                    },
+                    onComplete = { input ->
+                        actualInput = input
+                        scope.launch {
+                            snackbarHostState.showSnackbar(
+                                message = "입력 완료: $input",
+                                actionLabel = "닫기"
+                            )
+                        }
+                    },
+                    onError = { errorMsg ->
+                        scope.launch {
+                            snackbarHostState.showSnackbar(
+                                message = errorMsg,
+                                actionLabel = "확인"
+                            )
+                        }
+                    }
+                )
+            }
+        }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -70,14 +113,15 @@ fun SampleScreen() {
                 .padding(padding)
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // 결과 표시
             if (actualInput.isNotEmpty()) {
                 Card(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer
-                    )
+                    ),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp)
@@ -102,37 +146,88 @@ fun SampleScreen() {
                 }
             }
 
-            // 키패드
-            SecureKeypad(
-                config = KeypadConfig(
-                    type = KeypadType.NUMERIC,
-                    colors = KeypadColors.toss(), // 토스 스타일 적용!
-                    maskingChar = '●',
-                    maxLength = 6,
-                    randomizeLayout = false,
-                    enableHapticFeedback = true
-                ),
-                onKeyPressed = { masked ->
-                    maskedInput = masked
-                },
-                onComplete = { input ->
-                    actualInput = input
-                    scope.launch {
-                        snackbarHostState.showSnackbar(
-                            message = "입력 완료: $input",
-                            actionLabel = "닫기"
+            // 키패드 선택 버튼
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // 숫자 키패드 버튼
+                Button(
+                    onClick = {
+                        selectedKeypadType = KeypadType.NUMERIC
+                        actualInput = ""
+                        maskedInput = ""
+                    },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (selectedKeypadType == KeypadType.NUMERIC)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.secondary
+                    )
+                ) {
+                    Text(
+                        text = "숫자 키패드",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                }
+
+                // 문자 키패드 버튼
+                Button(
+                    onClick = {
+                        selectedKeypadType = KeypadType.ALPHANUMERIC
+                        actualInput = ""
+                        maskedInput = ""
+                    },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (selectedKeypadType == KeypadType.ALPHANUMERIC)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.secondary
+                    )
+                ) {
+                    Text(
+                        text = "문자 키패드\n(한글/영문)",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                }
+            }
+
+            // 키패드가 선택되지 않았을 때 안내 메시지
+            if (selectedKeypadType == null) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = "👆",
+                            style = MaterialTheme.typography.displayLarge
                         )
-                    }
-                },
-                onError = { errorMsg ->
-                    scope.launch {
-                        snackbarHostState.showSnackbar(
-                            message = errorMsg,
-                            actionLabel = "확인"
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "위 버튼을 눌러\n키패드를 선택하세요",
+                            style = MaterialTheme.typography.titleLarge,
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
-            )
+            }
         }
     }
 }
