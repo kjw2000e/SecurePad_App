@@ -38,5 +38,8 @@ data class KeypadConfig(
     val enableAccessibility: Boolean = true,
 
     /** 버튼 높이 (앱단에서 조정 가능) */
-    val buttonHeight: Dp = 48.dp
+    val buttonHeight: Dp = 48.dp,
+
+    /** 암호화 활성화 (true면 KeyDataManager 사용) */
+    val enableEncryption: Boolean = false
 )

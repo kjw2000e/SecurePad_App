@@ -1,5 +1,6 @@
 package com.kica.android.secure.keypad
 
+import android.content.Context
 import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -15,6 +16,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -46,9 +48,12 @@ fun SecureKeypad(
     onComplete: (inputValue: String) -> Unit = {},
     onError: (errorMessage: String) -> Unit = {}
 ) {
+    // Context 가져오기
+    val context = LocalContext.current
+
     // ViewModel 생성
     val viewModel: KeypadViewModel = viewModel(
-        factory = KeypadViewModelFactory(config)
+        factory = KeypadViewModelFactory(context, config)
     )
 
     // Config 변경 감지 및 ViewModel 업데이트
@@ -291,12 +296,13 @@ private fun AlphabeticKeypadLayout(
  * ViewModel Factory
  */
 private class KeypadViewModelFactory(
+    private val context: Context,
     private val config: KeypadConfig
 ) : androidx.lifecycle.ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(KeypadViewModel::class.java)) {
-            return KeypadViewModel(config) as T
+            return KeypadViewModel(context, config) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

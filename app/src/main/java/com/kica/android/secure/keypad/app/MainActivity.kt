@@ -81,7 +81,8 @@ fun SampleScreen() {
                         showMasking = false,
                         maxLength = if (keypadType == KeypadType.NUMERIC) 6 else 20,
                         randomizeLayout = false,
-                        enableHapticFeedback = true
+                        enableHapticFeedback = true,
+                        enableEncryption = true  // 암호화 활성화
                     ),
                     onKeyPressed = { masked ->
                         maskedInput = masked
@@ -90,7 +91,7 @@ fun SampleScreen() {
                         actualInput = input
                         scope.launch {
                             snackbarHostState.showSnackbar(
-                                message = "입력 완료: $input",
+                                message = "입력 완료 (길이: ${input.length}자)",
                                 actionLabel = "닫기"
                             )
                         }
@@ -127,7 +128,7 @@ fun SampleScreen() {
                         modifier = Modifier.padding(16.dp)
                     ) {
                         Text(
-                            text = "입력 완료",
+                            text = "입력 완료 (암호화 모드)",
                             style = MaterialTheme.typography.titleMedium
                         )
 
@@ -137,10 +138,22 @@ fun SampleScreen() {
                             style = MaterialTheme.typography.bodyMedium
                         )
 
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "암호화 데이터 (Hex):",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "실제값: $actualInput",
-                            style = MaterialTheme.typography.bodyLarge
+                            text = actualInput.take(200) + if (actualInput.length > 200) "..." else "",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "총 길이: ${actualInput.length} 문자",
+                            style = MaterialTheme.typography.bodySmall
                         )
                     }
                 }

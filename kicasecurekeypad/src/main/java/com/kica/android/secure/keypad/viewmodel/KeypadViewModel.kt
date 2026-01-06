@@ -1,5 +1,6 @@
 package com.kica.android.secure.keypad.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kica.android.secure.keypad.data.layout.EnglishLayout
@@ -9,6 +10,7 @@ import com.kica.android.secure.keypad.domain.model.Key
 import com.kica.android.secure.keypad.domain.model.KeyType
 import com.kica.android.secure.keypad.domain.model.KeypadConfig
 import com.kica.android.secure.keypad.domain.model.KeypadType
+import com.kica.android.secure.keypad.security.KeyDataManager
 import com.kica.android.secure.keypad.utils.HangulAssembler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,13 +23,21 @@ import kotlinx.coroutines.launch
  * 입력 상태 관리 및 비즈니스 로직 처리
  */
 class KeypadViewModel(
+    private val context: Context,
     initialConfig: KeypadConfig
 ) : ViewModel() {
 
     // Config (변경 가능)
     private var config: KeypadConfig = initialConfig
 
-    // 실제 입력값 (평문) - 내부에서만 사용
+    // KeyDataManager (암호화 활성화 시 사용)
+    private val keyDataManager: KeyDataManager? = if (config.enableEncryption) {
+        KeyDataManager.getInstance(context)
+    } else {
+        null
+    }
+
+    // 실제 입력값 (평문) - 내부에서만 사용 (암호화 비활성화 시)
     private val inputBuffer = StringBuilder()
 
     // 한글 조립기
@@ -64,9 +74,19 @@ class KeypadViewModel(
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
     // 숫자 섞기 상태 (NUMERIC 타입용)
+
     private var shuffledNumbers: List<Int>? = null
 
     init {
+        // KeyDataManager 초기화 (암호화 활성화 시)
+        if (config.enableEncryption) {
+            try {
+                keyDataManager?.initialize()
+            } catch (e: Exception) {
+                _errorMessage.value = "암호화 초기화 실패: ${e.message}"
+            }
+        }
+
         // 초기 키 목록 로드
         loadKeys()
     }
@@ -86,56 +106,12 @@ class KeypadViewModel(
                     val isKorean = config.type == KeypadType.KOREAN ||
                             (config.type == KeypadType.ALPHANUMERIC && _currentLanguage.value == KeypadType.KOREAN)
 
-                    if (isKorean) {
-                        // append() 호출 전에 조립 상태 저장
-                        val wasComposing = hangulAssembler.isComposing()
-
-                        // 한글 조립
-                        val assembled = hangulAssembler.append(char)
-
-                        // 최대 길이 체크
-                        val expectedLength = if (wasComposing) {
-                            inputBuffer.length - 1 + assembled.length
-                        } else {
-                            inputBuffer.length + assembled.length
-                        }
-
-                        val maxLength = config.maxLength
-                        if (maxLength != null && expectedLength > maxLength) {
-                            _errorMessage.value = "최대 ${maxLength}자리까지 입력 가능합니다"
-                            triggerErrorFeedback()
-                            return@launch
-                        }
-
-                        // 조립된 문자열 처리
-                        if (assembled.isNotEmpty()) {
-                            if (wasComposing) {
-                                // 이전에 조립 중이던 글자를 제거하고 새로운 결과로 대체
-                                if (inputBuffer.isNotEmpty()) {
-                                    inputBuffer.deleteCharAt(inputBuffer.lastIndex)
-                                }
-                            }
-                            inputBuffer.append(assembled)
-                        }
+                    if (config.enableEncryption) {
+                        // 암호화 모드
+                        handleNormalKeyEncrypted(char, isKorean)
                     } else {
-                        // 한글이 아닌 경우 (영문, 숫자 등)
-                        val maxLength = config.maxLength
-                        if (maxLength != null && inputBuffer.length >= maxLength) {
-                            _errorMessage.value = "최대 ${maxLength}자리까지 입력 가능합니다"
-                            triggerErrorFeedback()
-                            return@launch
-                        }
-
-                        // 조립 중인 한글이 있으면 완성
-                        if (hangulAssembler.isComposing()) {
-                            val completed = hangulAssembler.commit()
-                            if (completed.isNotEmpty() && inputBuffer.isNotEmpty()) {
-                                inputBuffer.deleteCharAt(inputBuffer.lastIndex)
-                                inputBuffer.append(completed)
-                            }
-                        }
-
-                        inputBuffer.append(char)
+                        // 평문 모드 (기존 로직)
+                        handleNormalKeyPlaintext(char, isKorean)
                     }
 
                     updateMaskedDisplay()
@@ -155,25 +131,12 @@ class KeypadViewModel(
                 }
 
                 KeyType.SPACE -> {
-                    // 최대 길이 체크
-                    val maxLength = config.maxLength
-                    if (maxLength != null && inputBuffer.length >= maxLength) {
-                        _errorMessage.value = "최대 ${maxLength}자리까지 입력 가능합니다"
-                        triggerErrorFeedback()
-                        return@launch
+                    if (config.enableEncryption) {
+                        handleSpaceEncrypted()
+                    } else {
+                        handleSpacePlaintext()
                     }
 
-                    // 조립 중인 한글이 있으면 완성
-                    if (hangulAssembler.isComposing()) {
-                        val completed = hangulAssembler.commit()
-                        if (completed.isNotEmpty() && inputBuffer.isNotEmpty()) {
-                            inputBuffer.deleteCharAt(inputBuffer.lastIndex)
-                            inputBuffer.append(completed)
-                        }
-                    }
-
-                    // 공백 추가
-                    inputBuffer.append(' ')
                     updateMaskedDisplay()
 
                     // 진동 피드백
@@ -202,28 +165,140 @@ class KeypadViewModel(
     }
 
     /**
+     * NORMAL 키 입력 처리 (평문 모드)
+     */
+    private fun handleNormalKeyPlaintext(char: Char, isKorean: Boolean) {
+        if (isKorean) {
+            // append() 호출 전에 조립 상태 저장
+            val wasComposing = hangulAssembler.isComposing()
+
+            // 한글 조립
+            val assembled = hangulAssembler.append(char)
+
+            // 최대 길이 체크
+            val expectedLength = if (wasComposing) {
+                inputBuffer.length - 1 + assembled.length
+            } else {
+                inputBuffer.length + assembled.length
+            }
+
+            val maxLength = config.maxLength
+            if (maxLength != null && expectedLength > maxLength) {
+                _errorMessage.value = "최대 ${maxLength}자리까지 입력 가능합니다"
+                triggerErrorFeedback()
+                return
+            }
+
+            // 조립된 문자열 처리
+            if (assembled.isNotEmpty()) {
+                if (wasComposing) {
+                    // 이전에 조립 중이던 글자를 제거하고 새로운 결과로 대체
+                    if (inputBuffer.isNotEmpty()) {
+                        inputBuffer.deleteCharAt(inputBuffer.lastIndex)
+                    }
+                }
+                inputBuffer.append(assembled)
+            }
+        } else {
+            // 한글이 아닌 경우 (영문, 숫자 등)
+            val maxLength = config.maxLength
+            if (maxLength != null && inputBuffer.length >= maxLength) {
+                _errorMessage.value = "최대 ${maxLength}자리까지 입력 가능합니다"
+                triggerErrorFeedback()
+                return
+            }
+
+            // 조립 중인 한글이 있으면 완성
+            if (hangulAssembler.isComposing()) {
+                val completed = hangulAssembler.commit()
+                if (completed.isNotEmpty() && inputBuffer.isNotEmpty()) {
+                    inputBuffer.deleteCharAt(inputBuffer.lastIndex)
+                    inputBuffer.append(completed)
+                }
+            }
+
+            inputBuffer.append(char)
+        }
+    }
+
+    /**
+     * NORMAL 키 입력 처리 (암호화 모드)
+     */
+    private fun handleNormalKeyEncrypted(char: Char, isKorean: Boolean) {
+        try {
+            if (isKorean) {
+                // 한글 조립 처리
+                val wasComposing = hangulAssembler.isComposing()
+                val assembled = hangulAssembler.append(char)
+
+                // 최대 길이 체크 (KeyDataManager의 inputCount 기준)
+                val currentCount = keyDataManager?.inputCount ?: 0
+                val expectedCount = if (wasComposing) {
+                    currentCount  // 조립 중이면 카운트는 그대로
+                } else {
+                    currentCount + 1  // 새 글자 시작이면 카운트 증가
+                }
+
+                val maxLength = config.maxLength
+                if (maxLength != null && expectedCount > maxLength) {
+                    _errorMessage.value = "최대 ${maxLength}자리까지 입력 가능합니다"
+                    triggerErrorFeedback()
+                    return
+                }
+
+                // 조립된 문자열 처리
+                if (assembled.isNotEmpty()) {
+                    if (wasComposing) {
+                        // 조립 중이던 글자 업데이트 (마지막 데이터 제거 후 재추가)
+                        if (inputBuffer.isNotEmpty()) {
+                            inputBuffer.deleteCharAt(inputBuffer.lastIndex)
+                        }
+                        keyDataManager?.removeKeyData()
+                    }
+                    inputBuffer.append(assembled)
+                    // 암호화하여 추가
+                    keyDataManager?.appendKeyData(assembled.toByteArray(Charsets.UTF_8))
+                }
+            } else {
+                // 한글이 아닌 경우 (영문, 숫자 등)
+                val currentCount = keyDataManager?.inputCount ?: 0
+                val maxLength = config.maxLength
+                if (maxLength != null && currentCount >= maxLength) {
+                    _errorMessage.value = "최대 ${maxLength}자리까지 입력 가능합니다"
+                    triggerErrorFeedback()
+                    return
+                }
+
+                // 조립 중인 한글이 있으면 완성
+                if (hangulAssembler.isComposing()) {
+                    val completed = hangulAssembler.commit()
+                    if (completed.isNotEmpty() && inputBuffer.isNotEmpty()) {
+                        inputBuffer.deleteCharAt(inputBuffer.lastIndex)
+                        inputBuffer.append(completed)
+                        // 마지막 한글 데이터 업데이트
+                        keyDataManager?.removeKeyData()
+                        keyDataManager?.appendKeyData(completed.toByteArray(Charsets.UTF_8))
+                    }
+                }
+
+                inputBuffer.append(char)
+                // 암호화하여 추가
+                keyDataManager?.appendKeyData(char.toString().toByteArray(Charsets.UTF_8))
+            }
+        } catch (e: Exception) {
+            _errorMessage.value = "암호화 오류: ${e.message}"
+        }
+    }
+
+    /**
      * 백스페이스 처리
      */
     fun handleBackspace() {
         viewModelScope.launch {
-            if (inputBuffer.isEmpty()) return@launch
-
-            // 한글 조립 중이면 조립 상태 되돌리기
-            val (handled, result) = hangulAssembler.backspace()
-
-            if (handled) {
-                // 조립 중인 글자 수정
-                if (inputBuffer.isNotEmpty()) {
-                    inputBuffer.deleteCharAt(inputBuffer.lastIndex)
-                }
-                if (result.isNotEmpty()) {
-                    inputBuffer.append(result)
-                }
+            if (config.enableEncryption) {
+                handleBackspaceEncrypted()
             } else {
-                // 이전 글자 삭제
-                if (inputBuffer.isNotEmpty()) {
-                    inputBuffer.deleteCharAt(inputBuffer.lastIndex)
-                }
+                handleBackspacePlaintext()
             }
 
             updateMaskedDisplay()
@@ -236,32 +311,186 @@ class KeypadViewModel(
     }
 
     /**
-     * 마스킹된 표시 업데이트
+     * 백스페이스 처리 (평문 모드)
      */
-    private fun updateMaskedDisplay() {
-        _maskedInput.value = if (config.showMasking) {
-            config.maskingChar.toString().repeat(inputBuffer.length)
+    private fun handleBackspacePlaintext() {
+        if (inputBuffer.isEmpty()) return
+
+        // 한글 조립 중이면 조립 상태 되돌리기
+        val (handled, result) = hangulAssembler.backspace()
+
+        if (handled) {
+            // 조립 중인 글자 수정
+            if (inputBuffer.isNotEmpty()) {
+                inputBuffer.deleteCharAt(inputBuffer.lastIndex)
+            }
+            if (result.isNotEmpty()) {
+                inputBuffer.append(result)
+            }
         } else {
-            inputBuffer.toString()
+            // 이전 글자 삭제
+            if (inputBuffer.isNotEmpty()) {
+                inputBuffer.deleteCharAt(inputBuffer.lastIndex)
+            }
         }
     }
 
     /**
-     * 입력값 가져오기 (평문)
-     *
-     * @return 입력된 문자열
+     * 백스페이스 처리 (암호화 모드)
      */
-    fun getInputValue(): String {
-        // 조립 중인 한글 완성
-        var result = inputBuffer.toString()
+    private fun handleBackspaceEncrypted() {
+        if (inputBuffer.isEmpty()) return
+
+        try {
+            // 한글 조립 중이면 조립 상태 되돌리기
+            val (handled, result) = hangulAssembler.backspace()
+
+            if (handled) {
+                // 조립 중인 글자 수정
+                if (inputBuffer.isNotEmpty()) {
+                    inputBuffer.deleteCharAt(inputBuffer.lastIndex)
+                }
+                if (result.isNotEmpty()) {
+                    inputBuffer.append(result)
+                }
+                // KeyDataManager 업데이트
+                keyDataManager?.removeKeyData()
+                if (result.isNotEmpty()) {
+                    keyDataManager?.appendKeyData(result.toByteArray(Charsets.UTF_8))
+                }
+            } else {
+                // 이전 글자 삭제
+                if (inputBuffer.isNotEmpty()) {
+                    inputBuffer.deleteCharAt(inputBuffer.lastIndex)
+                }
+                keyDataManager?.removeKeyData()
+            }
+        } catch (e: Exception) {
+            _errorMessage.value = "백스페이스 처리 오류: ${e.message}"
+        }
+    }
+
+    /**
+     * SPACE 키 처리 (평문 모드)
+     */
+    private fun handleSpacePlaintext() {
+        // 최대 길이 체크
+        val maxLength = config.maxLength
+        if (maxLength != null && inputBuffer.length >= maxLength) {
+            _errorMessage.value = "최대 ${maxLength}자리까지 입력 가능합니다"
+            triggerErrorFeedback()
+            return
+        }
+
+        // 조립 중인 한글이 있으면 완성
         if (hangulAssembler.isComposing()) {
             val completed = hangulAssembler.commit()
-            if (result.isNotEmpty() && completed.isNotEmpty()) {
-                result = result.dropLast(1) + completed
+            if (completed.isNotEmpty() && inputBuffer.isNotEmpty()) {
+                inputBuffer.deleteCharAt(inputBuffer.lastIndex)
+                inputBuffer.append(completed)
             }
-            // 조립 상태는 유지 (다시 조립 가능하도록)
         }
-        return result
+
+        // 공백 추가
+        inputBuffer.append(' ')
+    }
+
+    /**
+     * SPACE 키 처리 (암호화 모드)
+     */
+    private fun handleSpaceEncrypted() {
+        try {
+            // 최대 길이 체크
+            val currentCount = keyDataManager?.inputCount ?: 0
+            val maxLength = config.maxLength
+            if (maxLength != null && currentCount >= maxLength) {
+                _errorMessage.value = "최대 ${maxLength}자리까지 입력 가능합니다"
+                triggerErrorFeedback()
+                return
+            }
+
+            // 조립 중인 한글이 있으면 완성
+            if (hangulAssembler.isComposing()) {
+                val completed = hangulAssembler.commit()
+                if (completed.isNotEmpty() && inputBuffer.isNotEmpty()) {
+                    inputBuffer.deleteCharAt(inputBuffer.lastIndex)
+                    inputBuffer.append(completed)
+                    // 마지막 한글 데이터 업데이트
+                    keyDataManager?.removeKeyData()
+                    keyDataManager?.appendKeyData(completed.toByteArray(Charsets.UTF_8))
+                }
+            }
+
+            // 공백 추가
+            inputBuffer.append(' ')
+            keyDataManager?.appendKeyData(" ".toByteArray(Charsets.UTF_8))
+        } catch (e: Exception) {
+            _errorMessage.value = "공백 입력 오류: ${e.message}"
+        }
+    }
+
+    /**
+     * 마스킹된 표시 업데이트
+     */
+    private fun updateMaskedDisplay() {
+        if (config.enableEncryption) {
+            // 암호화 모드: KeyDataManager의 inputCount 기준
+            val count = keyDataManager?.inputCount ?: 0
+            _maskedInput.value = if (config.showMasking) {
+                config.maskingChar.toString().repeat(count)
+            } else {
+                inputBuffer.toString()  // 조립 중인 한글 포함한 임시 표시
+            }
+        } else {
+            // 평문 모드: inputBuffer 기준
+            _maskedInput.value = if (config.showMasking) {
+                config.maskingChar.toString().repeat(inputBuffer.length)
+            } else {
+                inputBuffer.toString()
+            }
+        }
+    }
+
+    /**
+     * 입력값 가져오기
+     *
+     * 암호화 모드: 암호화된 데이터(E2E Hex)
+     * 평문 모드: 평문 문자열
+     *
+     * @return 입력된 데이터
+     */
+    fun getInputValue(): String {
+        if (config.enableEncryption) {
+            // 암호화 모드: 암호화된 E2E 데이터 반환
+            return try {
+                // 조립 중인 한글 완성
+                if (hangulAssembler.isComposing()) {
+                    val completed = hangulAssembler.commit()
+                    if (completed.isNotEmpty() && inputBuffer.isNotEmpty()) {
+                        inputBuffer.deleteCharAt(inputBuffer.lastIndex)
+                        inputBuffer.append(completed)
+                        // KeyDataManager 업데이트
+                        keyDataManager?.removeKeyData()
+                        keyDataManager?.appendKeyData(completed.toByteArray(Charsets.UTF_8))
+                    }
+                }
+                keyDataManager?.encryptedE2eDataHex ?: ""
+            } catch (e: Exception) {
+                _errorMessage.value = "암호화 데이터 가져오기 오류: ${e.message}"
+                ""
+            }
+        } else {
+            // 평문 모드: 평문 반환
+            var result = inputBuffer.toString()
+            if (hangulAssembler.isComposing()) {
+                val completed = hangulAssembler.commit()
+                if (result.isNotEmpty() && completed.isNotEmpty()) {
+                    result = result.dropLast(1) + completed
+                }
+                // 조립 상태는 유지 (다시 조립 가능하도록)
+            }
+            return result
+        }
     }
 
     /**
@@ -271,6 +500,16 @@ class KeypadViewModel(
         viewModelScope.launch {
             inputBuffer.clear()
             hangulAssembler.clear()
+
+            // 암호화 모드면 KeyDataManager도 초기화
+            if (config.enableEncryption) {
+                try {
+                    keyDataManager?.removeAllKeyData()
+                } catch (e: Exception) {
+                    _errorMessage.value = "입력 초기화 오류: ${e.message}"
+                }
+            }
+
             updateMaskedDisplay()
             _errorMessage.value = null
         }
@@ -453,7 +692,18 @@ class KeypadViewModel(
      */
     override fun onCleared() {
         super.onCleared()
-        // 메모리 제로화 (추후 암호화 구현 시 중요)
+
+        // 메모리 정리
         inputBuffer.clear()
+        hangulAssembler.clear()
+
+        // 암호화 모드면 KeyDataManager도 정리
+        if (config.enableEncryption) {
+            try {
+                keyDataManager?.removeAllKeyData()
+            } catch (e: Exception) {
+                // 정리 시 에러는 무시
+            }
+        }
     }
 }
