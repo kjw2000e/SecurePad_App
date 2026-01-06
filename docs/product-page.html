@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KICASecurePad - 한국정보인증 보안 키패드 라이브러리</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Unbounded:wght@700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #13131a;
+            --bg-tertiary: #1a1a24;
+            --accent-cyan: #00ffcc;
+            --accent-green: #39ff14;
+            --accent-purple: #9d4edd;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0b0;
+            --text-muted: #606070;
+            --border: #2a2a35;
+            --shadow-glow: 0 0 30px rgba(0, 255, 204, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        /* Animated background grid */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                linear-gradient(rgba(0, 255, 204, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 204, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            z-index: -1;
+            animation: gridMove 20s linear infinite;
+        }
+
+        @keyframes gridMove {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(50px, 50px); }
+        }
+
+        /* Typography */
+        h1, h2, h3 {
+            font-family: 'Unbounded', sans-serif;
+            font-weight: 900;
+            letter-spacing: -0.02em;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 40px;
+        }
+
+        /* Header */
+        header {
+            padding: 30px 0;
+            border-bottom: 2px solid var(--border);
+            position: sticky;
+            top: 0;
+            background: rgba(10, 10, 15, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-green));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .logo-text {
+            font-size: 20px;
+            font-weight: 900;
+        }
+
+        .logo-text .korean {
+            color: var(--accent-cyan);
+            font-size: 14px;
+            display: block;
+            opacity: 0.8;
+        }
+
+        nav a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            margin-left: 30px;
+            font-size: 14px;
+            transition: color 0.3s;
+            position: relative;
+        }
+
+        nav a:hover {
+            color: var(--accent-cyan);
+        }
+
+        nav a::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--accent-cyan);
+            transition: width 0.3s;
+        }
+
+        nav a:hover::after {
+            width: 100%;
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 120px 0;
+            position: relative;
+        }
+
+        .hero-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 80px;
+            align-items: center;
+        }
+
+        .hero-content h1 {
+            font-size: 72px;
+            line-height: 1.1;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, var(--text-primary), var(--accent-cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .hero-subtitle {
+            font-size: 18px;
+            color: var(--text-secondary);
+            margin-bottom: 40px;
+            animation: fadeInUp 0.8s ease-out 0.2s backwards;
+        }
+
+        .hero-badges {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 40px;
+            animation: fadeInUp 0.8s ease-out 0.4s backwards;
+        }
+
+        .badge {
+            padding: 8px 16px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 12px;
+            color: var(--accent-cyan);
+            font-weight: 700;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 20px;
+            animation: fadeInUp 0.8s ease-out 0.6s backwards;
+        }
+
+        .btn {
+            padding: 16px 32px;
+            border: none;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: var(--accent-cyan);
+            color: var(--bg-primary);
+            box-shadow: 0 4px 20px rgba(0, 255, 204, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 30px rgba(0, 255, 204, 0.6);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-primary);
+            border: 2px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+        }
+
+        /* Interactive Keypad Demo */
+        .keypad-demo {
+            background: var(--bg-secondary);
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: var(--shadow-glow);
+            animation: fadeInRight 0.8s ease-out 0.4s backwards;
+            position: relative;
+            overflow: hidden;
+        }
+
+        @keyframes fadeInRight {
+            from {
+                opacity: 0;
+                transform: translateX(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .keypad-demo::before {
+            content: 'LIVE DEMO';
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 10px;
+            color: var(--accent-green);
+            padding: 4px 8px;
+            background: rgba(57, 255, 20, 0.1);
+            border: 1px solid var(--accent-green);
+            border-radius: 4px;
+            animation: blink 2s ease-in-out infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .input-display {
+            background: var(--bg-tertiary);
+            border: 2px solid var(--accent-cyan);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 32px;
+            letter-spacing: 8px;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent-cyan);
+            font-weight: 700;
+            box-shadow: inset 0 0 20px rgba(0, 255, 204, 0.1);
+        }
+
+        .keypad-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .key {
+            aspect-ratio: 1;
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .key::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(0, 255, 204, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.3s, height 0.3s;
+        }
+
+        .key:hover {
+            border-color: var(--accent-cyan);
+            transform: translateY(-2px);
+        }
+
+        .key:active::before {
+            width: 100%;
+            height: 100%;
+        }
+
+        .key.shuffle {
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-cyan));
+            border: none;
+            color: white;
+        }
+
+        .key.backspace {
+            background: var(--accent-green);
+            border: none;
+            color: var(--bg-primary);
+        }
+
+        .keypad-footer {
+            margin-top: 20px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        /* Features Section */
+        .features {
+            padding: 120px 0;
+            background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 80px;
+        }
+
+        .section-header h2 {
+            font-size: 56px;
+            margin-bottom: 20px;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .section-header p {
+            font-size: 18px;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+        }
+
+        .feature-card {
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            padding: 40px;
+            transition: all 0.4s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-green));
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.4s;
+        }
+
+        .feature-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .feature-card:hover {
+            border-color: var(--accent-cyan);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 40px rgba(0, 255, 204, 0.2);
+        }
+
+        .feature-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+
+        .feature-card h3 {
+            font-size: 24px;
+            margin-bottom: 15px;
+            color: var(--accent-cyan);
+        }
+
+        .feature-card p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.8;
+        }
+
+        /* Security Stack Visualization */
+        .security-stack {
+            padding: 120px 0;
+            background: var(--bg-primary);
+        }
+
+        .stack-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+        }
+
+        .stack-visual {
+            position: relative;
+        }
+
+        .layer {
+            background: var(--bg-secondary);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+            position: relative;
+            transition: all 0.4s;
+            animation: slideInLeft 0.8s ease-out backwards;
+        }
+
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .layer:nth-child(1) { animation-delay: 0.2s; }
+        .layer:nth-child(2) { animation-delay: 0.4s; }
+        .layer:nth-child(3) { animation-delay: 0.6s; }
+
+        .layer:hover {
+            transform: translateX(10px);
+            border-color: var(--accent-cyan);
+        }
+
+        .layer-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--accent-cyan);
+            margin-bottom: 10px;
+        }
+
+        .layer-desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .layer-tech {
+            margin-top: 15px;
+            font-size: 11px;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Code Example Section */
+        .code-section {
+            padding: 120px 0;
+            background: var(--bg-secondary);
+        }
+
+        .code-example {
+            background: var(--bg-primary);
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            margin-top: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .code-header {
+            background: var(--bg-tertiary);
+            padding: 15px 25px;
+            border-bottom: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .code-dots {
+            display: flex;
+            gap: 8px;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .dot.red { background: #ff5f56; }
+        .dot.yellow { background: #ffbd2e; }
+        .dot.green { background: #27c93f; }
+
+        .code-title {
+            margin-left: 15px;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .code-content {
+            padding: 30px;
+            font-size: 14px;
+            line-height: 1.8;
+            overflow-x: auto;
+        }
+
+        .code-content code {
+            color: var(--text-primary);
+        }
+
+        .keyword { color: var(--accent-purple); }
+        .string { color: var(--accent-green); }
+        .function { color: var(--accent-cyan); }
+        .comment { color: var(--text-muted); font-style: italic; }
+
+        /* Stats Section */
+        .stats {
+            padding: 80px 0;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-green));
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 40px;
+            text-align: center;
+        }
+
+        .stat h3 {
+            font-size: 56px;
+            color: var(--bg-primary);
+            margin-bottom: 10px;
+        }
+
+        .stat p {
+            font-size: 14px;
+            color: rgba(10, 10, 15, 0.8);
+            font-weight: 700;
+        }
+
+        /* Footer */
+        footer {
+            padding: 60px 0;
+            background: var(--bg-primary);
+            border-top: 2px solid var(--border);
+        }
+
+        .footer-content {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 60px;
+        }
+
+        .footer-brand {
+            max-width: 300px;
+        }
+
+        .footer-brand h4 {
+            font-size: 20px;
+            margin-bottom: 15px;
+        }
+
+        .footer-brand p {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+
+        .footer-links h5 {
+            font-size: 14px;
+            margin-bottom: 20px;
+            color: var(--accent-cyan);
+        }
+
+        .footer-links a {
+            display: block;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 13px;
+            margin-bottom: 12px;
+            transition: color 0.3s;
+        }
+
+        .footer-links a:hover {
+            color: var(--accent-cyan);
+        }
+
+        .footer-bottom {
+            margin-top: 60px;
+            padding-top: 30px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .hero-grid, .stack-container {
+                grid-template-columns: 1fr;
+                gap: 60px;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .footer-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hero-content h1 {
+                font-size: 48px;
+            }
+
+            .section-header h2 {
+                font-size: 36px;
+            }
+
+            .cta-buttons {
+                flex-direction: column;
+            }
+
+            .container {
+                padding: 0 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <div class="logo-icon">🔐</div>
+                    <div class="logo-text">
+                        KICASecurePad
+                        <span class="korean">한국정보인증</span>
+                    </div>
+                </div>
+                <nav>
+                    <a href="#features">Features</a>
+                    <a href="#security">Security</a>
+                    <a href="#docs">Documentation</a>
+                    <a href="#download">Download</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="container">
+            <div class="hero-grid">
+                <div class="hero-content">
+                    <h1>보안 키패드<br>새로운 표준</h1>
+                    <p class="hero-subtitle">
+                        Military-grade encryption meets seamless UX.
+                        Android's most advanced secure input library for financial and authentication applications.
+                    </p>
+                    <div class="hero-badges">
+                        <span class="badge">AES-256</span>
+                        <span class="badge">RSA-2048</span>
+                        <span class="badge">HMAC-SHA1</span>
+                        <span class="badge">Jetpack Compose</span>
+                    </div>
+                    <div class="cta-buttons">
+                        <a href="#download" class="btn btn-primary">Get Started →</a>
+                        <a href="#docs" class="btn btn-secondary">View Docs</a>
+                    </div>
+                </div>
+
+                <div class="keypad-demo">
+                    <div class="input-display" id="display">••••••</div>
+                    <div class="keypad-grid">
+                        <button class="key" data-value="1">1</button>
+                        <button class="key" data-value="2">2</button>
+                        <button class="key" data-value="3">3</button>
+                        <button class="key" data-value="4">4</button>
+                        <button class="key" data-value="5">5</button>
+                        <button class="key" data-value="6">6</button>
+                        <button class="key" data-value="7">7</button>
+                        <button class="key" data-value="8">8</button>
+                        <button class="key" data-value="9">9</button>
+                        <button class="key shuffle" id="shuffle">🔀</button>
+                        <button class="key" data-value="0">0</button>
+                        <button class="key backspace" id="backspace">⌫</button>
+                    </div>
+                    <div class="keypad-footer">
+                        🔒 Encrypted • Each keystroke protected with AES-256
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="features" id="features">
+        <div class="container">
+            <div class="section-header">
+                <h2>Enterprise-Ready Security</h2>
+                <p>Built for financial institutions, fintech apps, and high-security applications requiring keystroke-level encryption</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🛡️</div>
+                    <h3>Multi-Layer Encryption</h3>
+                    <p>AES-256 encryption per keystroke with RSA-2048 key exchange and HMAC-SHA1 integrity verification. Zero plaintext exposure in memory.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎯</div>
+                    <h3>Randomized Layout</h3>
+                    <p>Dynamic key shuffling prevents shoulder surfing and pattern analysis attacks. Each session generates unique layouts.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🌏</div>
+                    <h3>Multilingual Support</h3>
+                    <p>Native Korean (한글) input with real-time Jamo composition, English QWERTY, and numeric modes. Seamless language switching.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3>Jetpack Compose UI</h3>
+                    <p>Modern declarative UI built with Compose. Fully customizable themes, colors, and layouts with production-grade performance.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎨</div>
+                    <h3>Customizable Themes</h3>
+                    <p>Pre-built themes (Default, Toss-inspired) and complete design system control. Match your brand identity effortlessly.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📱</div>
+                    <h3>Mobile-Optimized</h3>
+                    <p>Haptic feedback, edge-to-edge display support, and accessibility features. Designed for modern Android devices (API 29+).</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="security-stack" id="security">
+        <div class="container">
+            <div class="stack-container">
+                <div class="stack-content">
+                    <h2 style="font-size: 48px; margin-bottom: 20px;">보안 아키텍처</h2>
+                    <p style="color: var(--text-secondary); font-size: 16px; line-height: 1.8; margin-bottom: 40px;">
+                        Three-layer security architecture ensuring end-to-end protection from user input to server transmission.
+                        Each keystroke is independently encrypted with random padding to prevent pattern analysis.
+                    </p>
+                </div>
+                <div class="stack-visual">
+                    <div class="layer">
+                        <div class="layer-title">Layer 1: Input Protection</div>
+                        <div class="layer-desc">
+                            Each keystroke encrypted with AES-256/CBC. Random 15-byte padding per input prevents frequency analysis even when same key pressed multiple times.
+                        </div>
+                        <div class="layer-tech">AES-256-CBC • PKCS5Padding • 16-byte blocks</div>
+                    </div>
+                    <div class="layer">
+                        <div class="layer-title">Layer 2: Key Exchange</div>
+                        <div class="layer-desc">
+                            Symmetric session key encrypted with RSA-2048 public key. Key loaded from assets (vkeypad_public.pem) ensures secure key distribution.
+                        </div>
+                        <div class="layer-tech">RSA-2048 • PKCS1Padding • 256-byte asymmetric encryption</div>
+                    </div>
+                    <div class="layer">
+                        <div class="layer-title">Layer 3: Integrity Verification</div>
+                        <div class="layer-desc">
+                            HMAC-SHA1 signature validates data integrity during transmission. Detects tampering and ensures authentic encrypted payload delivery.
+                        </div>
+                        <div class="layer-tech">HMAC-SHA1 • 20-byte MAC • Tamper detection</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="code-section" id="docs">
+        <div class="container">
+            <div class="section-header">
+                <h2>Simple Integration</h2>
+                <p>Add secure input to your app in minutes. Drop-in Composable with zero configuration required.</p>
+            </div>
+
+            <div class="code-example">
+                <div class="code-header">
+                    <div class="code-dots">
+                        <div class="dot red"></div>
+                        <div class="dot yellow"></div>
+                        <div class="dot green"></div>
+                    </div>
+                    <div class="code-title">MainActivity.kt</div>
+                </div>
+                <div class="code-content">
+<code><span class="keyword">import</span> com.kica.android.secure.keypad.<span class="function">SecureKeypad</span>
+<span class="keyword">import</span> com.kica.android.secure.keypad.domain.model.*
+
+<span class="comment">// Minimal setup - production-ready in 3 lines</span>
+<span class="keyword">@Composable</span>
+<span class="keyword">fun</span> <span class="function">PaymentScreen</span>() {
+    <span class="keyword">var</span> pin <span class="keyword">by</span> <span class="function">remember</span> { <span class="function">mutableStateOf</span>(<span class="string">""</span>) }
+
+    <span class="function">SecureKeypad</span>(
+        config = <span class="function">KeypadConfig</span>(
+            type = KeypadType.<span class="keyword">NUMERIC</span>,
+            colors = KeypadColors.<span class="function">default</span>(),
+            maxLength = <span class="string">6</span>,
+            showMasking = <span class="keyword">true</span>
+        ),
+        onKeyPressed = { masked <span class="keyword">-></span>
+            <span class="comment">// Update UI with masked value (••••••)</span>
+            <span class="function">println</span>(<span class="string">"Masked: $masked"</span>)
+        },
+        onComplete = { plaintext <span class="keyword">-></span>
+            <span class="comment">// Receive decrypted input for server transmission</span>
+            pin = plaintext
+            <span class="function">submitToServer</span>(pin)
+        },
+        onError = { errorMsg <span class="keyword">-></span>
+            <span class="function">showError</span>(errorMsg)
+        }
+    )
+}
+
+<span class="comment">// Advanced: Korean/English alphanumeric input</span>
+<span class="function">SecureKeypad</span>(
+    config = <span class="function">KeypadConfig</span>(
+        type = KeypadType.<span class="keyword">ALPHANUMERIC</span>,
+        colors = KeypadColors.<span class="function">toss</span>(),
+        enableHapticFeedback = <span class="keyword">true</span>
+    ),
+    onComplete = { input <span class="keyword">-></span>
+        <span class="comment">// Handle mixed Korean/English input</span>
+        <span class="function">processUserName</span>(input)
+    }
+)</code>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="stats">
+        <div class="container">
+            <div class="stats-grid">
+                <div class="stat">
+                    <h3>256-bit</h3>
+                    <p>AES ENCRYPTION</p>
+                </div>
+                <div class="stat">
+                    <h3>2048-bit</h3>
+                    <p>RSA KEY EXCHANGE</p>
+                </div>
+                <div class="stat">
+                    <h3>16-byte</h3>
+                    <p>ENCRYPTED BLOCKS</p>
+                </div>
+                <div class="stat">
+                    <h3>100%</h3>
+                    <p>KOTLIN COMPOSE</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <h4>KICASecurePad</h4>
+                    <p>
+                        Enterprise-grade secure input library for Android.
+                        Developed with military-grade encryption standards for financial and authentication applications.
+                    </p>
+                </div>
+                <div class="footer-links">
+                    <h5>Product</h5>
+                    <a href="#features">Features</a>
+                    <a href="#security">Security</a>
+                    <a href="#docs">Documentation</a>
+                    <a href="#download">Download</a>
+                </div>
+                <div class="footer-links">
+                    <h5>Resources</h5>
+                    <a href="#">API Reference</a>
+                    <a href="#">GitHub Repository</a>
+                    <a href="#">Sample App</a>
+                    <a href="#">Migration Guide</a>
+                </div>
+                <div class="footer-links">
+                    <h5>Company</h5>
+                    <a href="#">About KICA</a>
+                    <a href="#">Contact</a>
+                    <a href="#">License</a>
+                    <a href="#">Support</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                © 2025 한국정보인증 (Korea Information Certificate Authority). All rights reserved. • Built with ❤️ and 🔒
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Interactive Keypad Demo
+        const display = document.getElementById('display');
+        const keys = document.querySelectorAll('.key[data-value]');
+        const shuffle = document.getElementById('shuffle');
+        const backspace = document.getElementById('backspace');
+
+        let input = '';
+        const maxLength = 6;
+
+        keys.forEach(key => {
+            key.addEventListener('click', () => {
+                if (input.length < maxLength) {
+                    input += key.dataset.value;
+                    updateDisplay();
+                    animateKey(key);
+                }
+            });
+        });
+
+        backspace.addEventListener('click', () => {
+            if (input.length > 0) {
+                input = input.slice(0, -1);
+                updateDisplay();
+                animateKey(backspace);
+            }
+        });
+
+        shuffle.addEventListener('click', () => {
+            shuffleKeys();
+            animateKey(shuffle);
+        });
+
+        function updateDisplay() {
+            if (input.length === 0) {
+                display.textContent = '••••••';
+                display.style.opacity = '0.5';
+            } else {
+                display.textContent = '•'.repeat(input.length);
+                display.style.opacity = '1';
+            }
+        }
+
+        function animateKey(key) {
+            key.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                key.style.transform = '';
+            }, 150);
+        }
+
+        function shuffleKeys() {
+            const keyElements = Array.from(document.querySelectorAll('.key[data-value]'));
+            const values = keyElements.map(k => k.dataset.value);
+
+            // Fisher-Yates shuffle
+            for (let i = values.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [values[i], values[j]] = [values[j], values[i]];
+            }
+
+            keyElements.forEach((key, index) => {
+                key.style.opacity = '0';
+                setTimeout(() => {
+                    key.dataset.value = values[index];
+                    key.textContent = values[index];
+                    key.style.opacity = '1';
+                }, 200);
+            });
+        }
+
+        // Scroll animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -100px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.feature-card, .layer').forEach(el => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(30px)';
+            el.style.transition = 'all 0.6s ease-out';
+            observer.observe(el);
+        });
+
+        // Stats counter animation
+        const statsObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const stat = entry.target;
+                    const target = stat.querySelector('h3');
+                    const text = target.textContent;
+
+                    if (text.includes('%')) {
+                        animateNumber(target, 0, 100, 2000, '%');
+                    }
+                    statsObserver.unobserve(stat);
+                }
+            });
+        }, { threshold: 0.5 });
+
+        document.querySelectorAll('.stat').forEach(stat => {
+            statsObserver.observe(stat);
+        });
+
+        function animateNumber(element, start, end, duration, suffix = '') {
+            const range = end - start;
+            const increment = range / (duration / 16);
+            let current = start;
+
+            const timer = setInterval(() => {
+                current += increment;
+                if (current >= end) {
+                    current = end;
+                    clearInterval(timer);
+                }
+                element.textContent = Math.floor(current) + suffix;
+            }, 16);
+        }
+    </script>
+</body>
+</html>
