@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.kica.android.secure.keypad.data.layout.EnglishLayout
 import com.kica.android.secure.keypad.data.layout.KoreanLayout
 import com.kica.android.secure.keypad.data.layout.NumericLayout
+import com.kica.android.secure.keypad.data.layout.SpecialCharLayout
 import com.kica.android.secure.keypad.domain.model.Key
 import com.kica.android.secure.keypad.domain.model.KeyType
 import com.kica.android.secure.keypad.domain.model.KeypadConfig
@@ -60,6 +61,11 @@ class KeypadViewModel(
     // Shift 상태 (대문자/쌍자음)
     private val _isShifted = MutableStateFlow(false)
     val isShifted: StateFlow<Boolean> = _isShifted.asStateFlow()
+
+    // 특수문자 모드 상태
+    private val _isSpecialCharMode = MutableStateFlow(false)
+    val isSpecialCharMode: StateFlow<Boolean> = _isSpecialCharMode.asStateFlow()
+
 
     // 키 목록
     private val _keys = MutableStateFlow<List<Key>>(emptyList())
@@ -155,6 +161,10 @@ class KeypadViewModel(
 
                 KeyType.SHUFFLE -> {
                     handleShuffle()
+                }
+
+                KeyType.SPECIAL_TOGGLE -> {
+                    handleSpecialToggle()
                 }
 
                 else -> {
@@ -543,14 +553,17 @@ class KeypadViewModel(
     fun clearErrorMessage() {
         _errorMessage.value = null
     }
-
-    /**
-     * 키 목록 로드
-     *
+    /*
      * 현재 설정(타입, 언어, Shift 상태)에 따라 키 목록 생성
      */
     private fun loadKeys() {
         viewModelScope.launch {
+            // 특수문자 모드이면 특수문자 레이아웃 로드
+            if (_isSpecialCharMode.value && config.type == KeypadType.ALPHANUMERIC) {
+                _keys.value = SpecialCharLayout.getKeys()
+                return@launch
+            }
+
             _keys.value = when (config.type) {
                 KeypadType.NUMERIC -> {
                     NumericLayout.getKeys(shuffledNumbers)
@@ -606,6 +619,23 @@ class KeypadViewModel(
                 if (config.enableHapticFeedback) {
                     triggerVibration()
                 }
+            }
+        }
+    }
+
+    /**
+     * 특수문자 모드 토글 처리
+     */
+    private fun handleSpecialToggle() {
+        viewModelScope.launch {
+            _isSpecialCharMode.value = !_isSpecialCharMode.value
+
+            // 키 목록 다시 로드
+            loadKeys()
+
+            // 진동 피드백
+            if (config.enableHapticFeedback) {
+                triggerVibration()
             }
         }
     }

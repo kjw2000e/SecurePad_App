@@ -40,22 +40,23 @@ object EnglishLayout {
 
         val keys = mutableListOf<Key>()
 
+        // 첫 번째 줄: 숫자 키 (1 ~ 0) - [NEW]
+        val numbers = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "0")
+        numbers.forEach { num ->
+             keys.add(Key(num, num, KeyType.NORMAL))
+        }
 
-
-
-
-
-        // 첫 번째 줄: Q W E R T Y U I O P (10개)
+        // 두 번째 줄(기존 첫 줄): Q W E R T Y U I O P (10개)
         letters.subList(0, 10).forEach { letter ->
             keys.add(Key(letter, letter, KeyType.NORMAL))
         }
 
-        // 두 번째 줄: A S D F G H J K L (9개)
+        // 세 번째 줄: A S D F G H J K L (9개)
         letters.subList(10, 19).forEach { letter ->
             keys.add(Key(letter, letter, KeyType.NORMAL))
         }
 
-        // 세 번째 줄: Shift, Z X C V B N M, Backspace (9개)
+        // 네 번째 줄: Shift, Z X C V B N M, Backspace (9개)
         keys.add(
             Key(
                 value = "SHIFT",
@@ -74,7 +75,14 @@ object EnglishLayout {
             )
         )
 
-        // 네 번째 줄: 한/영, Space, 완료 (3개)
+        // 다섯 번째 줄: 특수문자, 한/영, Space, 완료 (4개) - [NEW]
+        keys.add(
+            Key(
+                value = "SPECIAL_TOGGLE",
+                displayText = "!#1", // 특수문자 토글 아이콘 대체 텍스트
+                type = KeyType.SPECIAL_TOGGLE
+            )
+        )
         keys.add(
             Key(
                 value = "SWITCH",
@@ -103,6 +111,11 @@ object EnglishLayout {
     /**
      * 각 행의 키 개수
      * UI에서 GridCells.Fixed() 사용 시 참고
+     * 1열: 10 (숫자)
+     * 2열: 10 (QWERTY)
+     * 3열: 9 (ASDF)
+     * 4열: 9 (ZXCV)
+     * 5열: 4 (Special, En/Ko, Space, Done)
      */
-    val rowSizes = listOf(10, 9, 9, 3)
+    val rowSizes = listOf(10, 10, 9, 9, 4)
 }

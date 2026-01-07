@@ -23,5 +23,11 @@ enum class KeyType {
     SHIFT,
 
     /** 재배열 (숫자 키패드 섞기) */
-    SHUFFLE
+    SHUFFLE,
+
+    /** 특수문자 모드 토글 */
+    SPECIAL_TOGGLE,
+
+    /** 빈 공간 (레이아웃 유지용) */
+    EMPTY
 }

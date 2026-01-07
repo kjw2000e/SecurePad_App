@@ -1,6 +1,7 @@
 package com.kica.android.secure.keypad
 
 import android.content.Context
+import android.util.Log
 import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -15,13 +16,16 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.kica.android.secure.keypad.data.layout.EnglishLayout
 import com.kica.android.secure.keypad.data.layout.KoreanLayout
+import com.kica.android.secure.keypad.data.layout.SpecialCharLayout
 import com.kica.android.secure.keypad.domain.model.Key
 import com.kica.android.secure.keypad.domain.model.KeyType
 import com.kica.android.secure.keypad.domain.model.KeypadColors
@@ -51,9 +55,27 @@ fun SecureKeypad(
     // Context 가져오기
     val context = LocalContext.current
 
+    // 다크 모드 감지 및 설정 적용
+    val isSystemDark = isSystemInDarkTheme()
+    Log.d("SecureKeypad", "다크 모드 감지: isSystemDark = $isSystemDark")
+
+    // 최종 설정 결정: 사용자가 기본 색상을 사용하고 있고, 시스템이 다크 모드이면 다크 테마 적용
+    val effectiveConfig = remember(config, isSystemDark) {
+        val isDefaultColors = config.colors == KeypadColors.default()
+        Log.d("SecureKeypad", "설정 확인: isDefaultColors = $isDefaultColors, isSystemDark = $isSystemDark")
+
+        if (isDefaultColors && isSystemDark) {
+            Log.d("SecureKeypad", "다크 테마 적용")
+            config.copy(colors = KeypadColors.dark())
+        } else {
+            Log.d("SecureKeypad", "기존 설정 유지 (사용자 커스텀 컬러 또는 라이트 모드)")
+            config
+        }
+    }
+
     // ViewModel 생성
     val viewModel: KeypadViewModel = viewModel(
-        factory = KeypadViewModelFactory(context, config)
+        factory = KeypadViewModelFactory(context, effectiveConfig)
     )
 
     // Config 변경 감지 및 ViewModel 업데이트
@@ -67,6 +89,7 @@ fun SecureKeypad(
     val errorMessage by viewModel.errorMessage.collectAsState()
     val keys by viewModel.keys.collectAsState()
     val currentLanguage by viewModel.currentLanguage.collectAsState()
+    val isSpecialCharMode by viewModel.isSpecialCharMode.collectAsState()
 
     // View 참조 (진동 피드백용)
     val view = LocalView.current
@@ -102,42 +125,49 @@ fun SecureKeypad(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .navigationBarsPadding() // 네비게이션 바 영역만큼 패딩 추가
-            .background(config.colors.backgroundColor)
-            .padding(horizontal = 8.dp, vertical = 12.dp) // 좌우 패딩 줄임
+            .navigationBarsPadding() // 네비게이션 바 패딩
     ) {
-        // 입력 표시 영역
+        // 입력 표시 영역 (배경색 없음)
         InputDisplay(
             maskedText = maskedInput,
-            colors = config.colors,
+            colors = effectiveConfig.colors,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 12.dp) // 간격 줄임
+                .padding(horizontal = 8.dp) // 좌우 패딩
+                .padding(top = 12.dp, bottom = 12.dp) // 상하 패딩 (간격 포함)
         )
 
-        // 키패드 레이아웃
-        when (config.type) {
-            KeypadType.NUMERIC -> {
-                // 숫자 키패드: 확인 버튼 + 3열 고정 그리드
-                NumericKeypadWithConfirm(
-                    keys = keys,
-                    colors = config.colors,
-                    config = config,
-                    viewModel = viewModel,
-                    onComplete = onComplete
-                )
-            }
+        // 키패드 레이아웃 (배경색 적용)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(effectiveConfig.colors.backgroundColor) // 배경색 적용
+                .padding(horizontal = 8.dp, vertical = 12.dp) // 내부 여백
+        ) {
+            when (config.type) {
+                KeypadType.NUMERIC -> {
+                    // 숫자 키패드: 확인 버튼 + 3열 고정 그리드
+                    NumericKeypadWithConfirm(
+                        keys = keys,
+                        colors = effectiveConfig.colors,
+                        config = effectiveConfig,
+                        viewModel = viewModel,
+                        onComplete = onComplete
+                    )
+                }
 
-            KeypadType.ENGLISH, KeypadType.KOREAN, KeypadType.ALPHANUMERIC -> {
-                // 영문/한글 키패드: 각 행마다 다른 열 수
-                AlphabeticKeypadLayout(
-                    keys = keys,
-                    colors = config.colors,
-                    config = config,
-                    keypadType = if (config.type == KeypadType.ALPHANUMERIC) currentLanguage else config.type,
-                    viewModel = viewModel,
-                    onComplete = onComplete
-                )
+                KeypadType.ENGLISH, KeypadType.KOREAN, KeypadType.ALPHANUMERIC -> {
+                    // 영문/한글 키패드: 각 행마다 다른 열 수
+                    AlphabeticKeypadLayout(
+                        keys = keys,
+                        colors = effectiveConfig.colors,
+                        config = effectiveConfig,
+                        keypadType = if (config.type == KeypadType.ALPHANUMERIC) currentLanguage else config.type,
+                        isSpecialCharMode = isSpecialCharMode,
+                        viewModel = viewModel,
+                        onComplete = onComplete
+                    )
+                }
             }
         }
     }
@@ -237,14 +267,19 @@ private fun AlphabeticKeypadLayout(
     colors: KeypadColors,
     config: KeypadConfig,
     keypadType: KeypadType,
+    isSpecialCharMode: Boolean,
     viewModel: KeypadViewModel,
     onComplete: (String) -> Unit
 ) {
     // 각 행의 키 개수
-    val rowSizes = when (keypadType) {
-        KeypadType.ENGLISH -> EnglishLayout.rowSizes
-        KeypadType.KOREAN -> KoreanLayout.rowSizes
-        else -> listOf(10, 9, 9, 3)
+    val rowSizes = if (isSpecialCharMode) {
+        SpecialCharLayout.rowSizes
+    } else {
+        when (keypadType) {
+            KeypadType.ENGLISH -> EnglishLayout.rowSizes
+            KeypadType.KOREAN -> KoreanLayout.rowSizes
+            else -> listOf(10, 9, 9, 3)
+        }
     }
 
     // 키를 행별로 분할

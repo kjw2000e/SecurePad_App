@@ -19,12 +19,12 @@ data class KeypadColors(
          * 기본 라이트 테마
          */
         fun default() = KeypadColors(
-            backgroundColor = Color(0xFFF5F5F5),
+            backgroundColor = Color(0xff000000),
             keyBackgroundColor = Color.White,
             keyTextColor = Color(0xFF212121),
-            specialKeyBackgroundColor = Color(0xFF1976D2),
-            specialKeyTextColor = Color.White,
-            inputDisplayBackgroundColor = Color.White,
+            specialKeyBackgroundColor = Color(0xFFABB0BC),
+            specialKeyTextColor = Color(0xFF212121),
+            inputDisplayBackgroundColor = Color(0xD2D3D8),
             inputDisplayTextColor = Color(0xFF212121)
         )
 
@@ -55,6 +55,19 @@ data class KeypadColors(
             specialKeyTextColor = Color(0xFF191F28),    // 거의 검정 (특수 키)
             inputDisplayBackgroundColor = Color(0xFFFFFFFF), // 흰색 카드
             inputDisplayTextColor = Color(0xFF191F28)   // 거의 검정
+        )
+
+        /**
+         * 연보라 스타일 테마 (사용자 이미지 기반)
+         */
+        fun lavender() = KeypadColors(
+            backgroundColor = Color(0xFFF4F0F6),        // 연보라 배경
+            keyBackgroundColor = Color(0xFFFFFFFF),     // 흰색 버튼
+            keyTextColor = Color(0xFF191F28),           // 검정 텍스트
+            specialKeyBackgroundColor = Color(0xFFB0B8C1), // 진한 회색 (특수 키: Shift, Backspace 등)
+            specialKeyTextColor = Color(0xFF191F28),    // 검정 (특수 키)
+            inputDisplayBackgroundColor = Color(0xFFFFFFFF),
+            inputDisplayTextColor = Color(0xFF191F28)
         )
     }
 }

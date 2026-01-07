@@ -47,17 +47,23 @@ object KoreanLayout {
         val chars = if (shifted) shiftedChars else basicChars
         val keys = mutableListOf<Key>()
 
-        // 첫 번째 줄: ㅂ ㅈ ㄷ ㄱ ㅅ ㅛ ㅕ ㅑ ㅐ ㅔ (10개)
+        // 첫 번째 줄: 숫자 키 (1 ~ 0) - [NEW]
+        val numbers = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "0")
+        numbers.forEach { num ->
+             keys.add(Key(num, num, KeyType.NORMAL))
+        }
+
+        // 두 번째 줄: ㅂ ㅈ ㄷ ㄱ ㅅ ㅛ ㅕ ㅑ ㅐ ㅔ (10개)
         chars.subList(0, 10).forEach { char ->
             keys.add(Key(char, char, KeyType.NORMAL))
         }
 
-        // 두 번째 줄: ㅁ ㄴ ㅇ ㄹ ㅎ ㅗ ㅓ ㅏ ㅣ (9개)
+        // 세 번째 줄: ㅁ ㄴ ㅇ ㄹ ㅎ ㅗ ㅓ ㅏ ㅣ (9개)
         chars.subList(10, 19).forEach { char ->
             keys.add(Key(char, char, KeyType.NORMAL))
         }
 
-        // 세 번째 줄: Shift, ㅋ ㅌ ㅊ ㅍ ㅠ ㅜ ㅡ, Backspace (9개)
+        // 네 번째 줄: Shift, ㅋ ㅌ ㅊ ㅍ ㅠ ㅜ ㅡ, Backspace (9개)
         keys.add(
             Key(
                 value = "SHIFT",
@@ -76,7 +82,14 @@ object KoreanLayout {
             )
         )
 
-        // 네 번째 줄: 한/영, Space, 완료 (3개)
+        // 다섯 번째 줄: 특수문자, 한/영, Space, 완료 (4개) - [NEW]
+        keys.add(
+            Key(
+                value = "SPECIAL_TOGGLE",
+                displayText = "!#1", // 특수문자 토글
+                type = KeyType.SPECIAL_TOGGLE
+            )
+        )
         keys.add(
             Key(
                 value = "SWITCH",
@@ -105,6 +118,11 @@ object KoreanLayout {
     /**
      * 각 행의 키 개수
      * UI에서 GridCells.Fixed() 사용 시 참고
+     * 1열: 10 (숫자)
+     * 2열: 10 (자음/모음)
+     * 3열: 9
+     * 4열: 9
+     * 5열: 4
      */
-    val rowSizes = listOf(10, 9, 9, 3)
+    val rowSizes = listOf(10, 10, 9, 9, 4)
 }

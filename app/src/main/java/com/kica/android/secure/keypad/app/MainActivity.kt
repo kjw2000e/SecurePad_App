@@ -76,7 +76,7 @@ fun SampleScreen() {
                     modifier = Modifier.fillMaxWidth(),
                     config = KeypadConfig(
                         type = keypadType,
-                        colors = KeypadColors.toss(),
+                        colors = KeypadColors.default(),
                         maskingChar = '●',
                         showMasking = false,
                         maxLength = if (keypadType == KeypadType.NUMERIC) 6 else 20,

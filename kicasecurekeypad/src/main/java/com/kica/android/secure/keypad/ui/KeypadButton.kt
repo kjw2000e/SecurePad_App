@@ -1,5 +1,6 @@
 package com.kica.android.secure.keypad.ui
 
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.padding
@@ -37,6 +38,15 @@ fun KeypadButton(
     modifier: Modifier = Modifier,
     useAspectRatio: Boolean = true
 ) {
+    if (key.type == KeyType.EMPTY) {
+        Spacer(
+            modifier = modifier
+                .then(if (useAspectRatio) Modifier.aspectRatio(1f) else Modifier)
+                .padding(1.dp)
+        )
+        return
+    }
+
     val isSpecialKey = key.type != KeyType.NORMAL
 
     Button(
@@ -54,6 +64,8 @@ fun KeypadButton(
                     KeyType.SWITCH -> "언어 전환"
                     KeyType.SHIFT -> "대소문자 전환"
                     KeyType.SHUFFLE -> "재배열"
+                    KeyType.SPECIAL_TOGGLE -> "특수문자"
+                    KeyType.EMPTY -> "빈문자"
                 }
                 role = Role.Button
             },
