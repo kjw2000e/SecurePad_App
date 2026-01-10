@@ -159,13 +159,33 @@ class KeyDataManager private constructor() {
     }
 
     /**
-     * 모든 입력 데이터 삭제
+     * 모든 입력 데이터 삭제 (메모리 보안 강화)
      */
     fun removeAllKeyData() {
-        // 보안을 위해 데이터 제로화
+        // 보안을 위해 암호화 블록 제로화
         encryptedBlocks.forEach { block -> block.fill(0) }
         encryptedBlocks.clear()
+
+        // plainCharacters는 String이므로 직접 제로화 불가, 리스트만 클리어
+        // (String은 immutable이므로 GC에 의존)
         plainCharacters.clear()
+    }
+
+    /**
+     * 전체 보안 초기화 (대칭키 포함)
+     *
+     * 키패드 세션 종료 시 호출하여 모든 민감한 데이터를 메모리에서 제거합니다.
+     * 이 함수 호출 후에는 initialize()를 다시 호출해야 합니다.
+     */
+    fun secureClear() {
+        // 1. 입력 데이터 제로화
+        removeAllKeyData()
+
+        // 2. 대칭키 제로화
+        symmetricKey.fill(0)
+
+        // 3. 암호화된 대칭키 제로화
+        encryptedSymmetricKey.fill(0)
     }
 
     /**

@@ -560,7 +560,11 @@ class KeypadViewModel(
      */
     fun clearInput() {
         viewModelScope.launch {
+            // 보안을 위해 inputBuffer 내용을 제로화 후 클리어
+            // StringBuilder는 내부적으로 char[]를 사용하므로 덮어쓰기
+            repeat(inputBuffer.length) { inputBuffer.setCharAt(it, '\u0000') }
             inputBuffer.clear()
+            
             hangulAssembler.clear()
 
             // 암호화 모드면 KeyDataManager도 초기화
@@ -575,6 +579,34 @@ class KeypadViewModel(
             updateMaskedDisplay()
             _errorMessage.value = null
             validateInput()
+        }
+    }
+
+    /**
+     * 보안 입력 초기화 (대칭키 포함)
+     *
+     * 키패드 세션 완전 종료 시 호출하여 모든 민감한 데이터를 메모리에서 제거합니다.
+     */
+    fun secureClearInput() {
+        viewModelScope.launch {
+            // inputBuffer 보안 클리어
+            repeat(inputBuffer.length) { inputBuffer.setCharAt(it, '\u0000') }
+            inputBuffer.clear()
+            
+            hangulAssembler.clear()
+
+            // KeyDataManager 전체 보안 초기화
+            if (config.enableEncryption) {
+                try {
+                    keyDataManager?.secureClear()
+                } catch (e: Exception) {
+                    _errorMessage.value = "보안 초기화 오류: ${e.message}"
+                }
+            }
+
+            updateMaskedDisplay()
+            _errorMessage.value = null
+            _validationResult.value = ValidationResult.valid()
         }
     }
 
