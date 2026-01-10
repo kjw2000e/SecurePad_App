@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    id("maven-publish")
 }
 
 android {
@@ -26,6 +27,47 @@ android {
     }
     kotlinOptions {
         jvmTarget = "11"
+    }
+    
+    publishing {
+        singleVariant("release") {
+            withSourcesJar()
+        }
+    }
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            create<MavenPublication>("release") {
+                from(components["release"])
+                
+                groupId = "com.github.kjw2000e"
+                artifactId = "kicasecurekeypad"
+                version = "1.0.0"
+                
+                pom {
+                    name.set("KICASecureKeypad")
+                    description.set("Secure Keypad SDK for Android - AES-256 encryption, Korean/English support")
+                    url.set("https://github.com/kjw2000e/SecurePad_App")
+                    
+                    licenses {
+                        license {
+                            name.set("Apache License 2.0")
+                            url.set("https://www.apache.org/licenses/LICENSE-2.0")
+                        }
+                    }
+                    
+                    developers {
+                        developer {
+                            id.set("kjw2000e")
+                            name.set("KICA")
+                            email.set("dev@kica.com")
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

@@ -1,0 +1,6 @@
+jdk:
+  - openjdk17
+install:
+  - echo "Installing..."
+before_install:
+  - chmod +x gradlew

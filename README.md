@@ -23,6 +23,28 @@
 
 ### 1. 의존성 추가
 
+#### JitPack 사용 (권장)
+
+```kotlin
+// settings.gradle.kts
+dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
+        maven { url = uri("https://jitpack.io") }  // 추가
+    }
+}
+
+// app/build.gradle.kts
+dependencies {
+    implementation("com.github.kjw2000e:SecurePad_App:1.0.0")
+}
+```
+
+[![](https://jitpack.io/v/kjw2000e/SecurePad_App.svg)](https://jitpack.io/#kjw2000e/SecurePad_App)
+
+#### 로컬 모듈 사용 (개발용)
+
 ```kotlin
 // app/build.gradle.kts
 dependencies {
