@@ -7,10 +7,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -27,6 +30,7 @@ import com.kica.android.secure.keypad.data.layout.EnglishLayout
 import com.kica.android.secure.keypad.data.layout.KoreanLayout
 import com.kica.android.secure.keypad.data.layout.SpecialCharLayout
 import com.kica.android.secure.keypad.domain.model.Key
+import com.kica.android.secure.keypad.domain.model.KeypadDisplayMode
 import com.kica.android.secure.keypad.domain.model.KeyType
 import com.kica.android.secure.keypad.domain.model.KeypadColors
 import com.kica.android.secure.keypad.domain.model.KeypadConfig
@@ -139,11 +143,18 @@ fun SecureKeypad(
         }
     }
 
+    // displayMode에 따른 높이 Modifier 결정
+    val displayModeModifier = when (effectiveConfig.displayMode) {
+        KeypadDisplayMode.FULL -> Modifier.fillMaxSize()
+        KeypadDisplayMode.HALF -> Modifier.fillMaxWidth().fillMaxHeight(0.55f)
+        KeypadDisplayMode.COMPACT -> Modifier.fillMaxWidth().wrapContentHeight()
+    }
+
     Column(
         modifier = modifier
-            .fillMaxWidth()
-            .background(effectiveConfig.colors.backgroundColor) // 전체 배경색
-            .navigationBarsPadding() // 네비게이션 바 패딩
+            .then(displayModeModifier)
+            .background(effectiveConfig.colors.backgroundColor)
+            .navigationBarsPadding()
     ) {
         // 상단 헤더 (제목, 부제목, 취소 버튼)
         KeypadHeader(

@@ -10,6 +10,9 @@ data class KeypadConfig(
     /** 키패드 타입 */
     val type: KeypadType = KeypadType.NUMERIC,
 
+    /** 표시 모드 (FULL: 전체화면, HALF: 하프, COMPACT: 컴팩트) */
+    val displayMode: KeypadDisplayMode = KeypadDisplayMode.HALF,
+
     /** 색상 테마 */
     val colors: KeypadColors = KeypadColors.default(),
 

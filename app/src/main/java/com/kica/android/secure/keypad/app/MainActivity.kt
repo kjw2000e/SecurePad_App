@@ -38,6 +38,7 @@ import com.kica.android.secure.keypad.SecureKeypad
 import com.kica.android.secure.keypad.domain.model.InputIndicatorStyle
 import com.kica.android.secure.keypad.domain.model.KeypadConfig
 import com.kica.android.secure.keypad.domain.model.KeypadColors
+import com.kica.android.secure.keypad.domain.model.KeypadDisplayMode
 import com.kica.android.secure.keypad.domain.model.KeypadType
 import kotlinx.coroutines.launch
 
@@ -77,6 +78,8 @@ fun SampleScreen() {
                     modifier = Modifier.fillMaxWidth(),
                     config = KeypadConfig(
                         type = keypadType,
+                        // 새 기능: 표시 모드 (HALF: 하단 절반 / FULL: 전체화면)
+                        displayMode = KeypadDisplayMode.HALF,
                         colors = KeypadColors.default(),
                         // 새 기능: 제목 및 부제목
                         title = if (keypadType == KeypadType.NUMERIC) "비밀번호 입력" else "비밀번호 입력",
