@@ -12,7 +12,13 @@ data class KeypadColors(
     val specialKeyBackgroundColor: Color,
     val specialKeyTextColor: Color,
     val inputDisplayBackgroundColor: Color,
-    val inputDisplayTextColor: Color
+    val inputDisplayTextColor: Color,
+    /** 제목 텍스트 색상 */
+    val titleColor: Color = Color(0xFF191F28),
+    /** 부제목 텍스트 색상 */
+    val subtitleColor: Color = Color(0xFF6B7684),
+    /** 취소 버튼 텍스트 색상 */
+    val cancelButtonColor: Color = Color(0xFF6B7684)
 ) {
     companion object {
         /**
@@ -25,7 +31,10 @@ data class KeypadColors(
             specialKeyBackgroundColor = Color(0xFFABB0BC),
             specialKeyTextColor = Color(0xFF212121),
             inputDisplayBackgroundColor = Color(0xD2D3D8),
-            inputDisplayTextColor = Color(0xFF212121)
+            inputDisplayTextColor = Color(0xFF212121),
+            titleColor = Color.White,
+            subtitleColor = Color(0xFFB0B8C1),
+            cancelButtonColor = Color(0xFFB0B8C1)
         )
 
         /**
@@ -38,7 +47,10 @@ data class KeypadColors(
             specialKeyBackgroundColor = Color(0xFF2196F3),
             specialKeyTextColor = Color.White,
             inputDisplayBackgroundColor = Color(0xFF1E1E1E),
-            inputDisplayTextColor = Color(0xFFE0E0E0)
+            inputDisplayTextColor = Color(0xFFE0E0E0),
+            titleColor = Color(0xFFE0E0E0),
+            subtitleColor = Color(0xFF9E9E9E),
+            cancelButtonColor = Color(0xFF9E9E9E)
         )
 
         /**
@@ -54,7 +66,10 @@ data class KeypadColors(
             specialKeyBackgroundColor = Color(0xFFF2F4F6), // 밝은 회색 (특수 키)
             specialKeyTextColor = Color(0xFF191F28),    // 거의 검정 (특수 키)
             inputDisplayBackgroundColor = Color(0xFFFFFFFF), // 흰색 카드
-            inputDisplayTextColor = Color(0xFF191F28)   // 거의 검정
+            inputDisplayTextColor = Color(0xFF191F28),  // 거의 검정
+            titleColor = Color(0xFF191F28),
+            subtitleColor = Color(0xFF6B7684),
+            cancelButtonColor = Color(0xFF6B7684)
         )
 
         /**
@@ -67,7 +82,10 @@ data class KeypadColors(
             specialKeyBackgroundColor = Color(0xFFB0B8C1), // 진한 회색 (특수 키: Shift, Backspace 등)
             specialKeyTextColor = Color(0xFF191F28),    // 검정 (특수 키)
             inputDisplayBackgroundColor = Color(0xFFFFFFFF),
-            inputDisplayTextColor = Color(0xFF191F28)
+            inputDisplayTextColor = Color(0xFF191F28),
+            titleColor = Color(0xFF191F28),
+            subtitleColor = Color(0xFF6B7684),
+            cancelButtonColor = Color(0xFF6B7684)
         )
     }
 }

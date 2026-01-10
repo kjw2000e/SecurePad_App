@@ -13,6 +13,18 @@ data class KeypadConfig(
     /** 색상 테마 */
     val colors: KeypadColors = KeypadColors.default(),
 
+    /** 상단 제목 (예: "비밀번호 입력") */
+    val title: String? = null,
+
+    /** 상단 부제목 (예: "숫자 6자리를 입력해주세요") */
+    val subtitle: String? = null,
+
+    /** 취소 버튼 표시 여부 */
+    val showCancelButton: Boolean = false,
+
+    /** 취소 버튼 텍스트 */
+    val cancelButtonText: String = "취소",
+
     /** 마스킹 문자 */
     val maskingChar: Char = '●',
 

@@ -33,15 +33,17 @@ import com.kica.android.secure.keypad.domain.model.KeypadConfig
 import com.kica.android.secure.keypad.domain.model.KeypadType
 import com.kica.android.secure.keypad.ui.InputDisplay
 import com.kica.android.secure.keypad.ui.KeypadButton
+import com.kica.android.secure.keypad.ui.KeypadHeader
 import com.kica.android.secure.keypad.viewmodel.KeypadViewModel
 
 /**
  * 보안 키패드 Composable
  *
  * @param modifier Modifier
- * @param config 키패드 설정
+ * @param config 키패드 설정 (제목, 부제목, 취소 버튼 등 포함)
  * @param onKeyPressed 키 입력 콜백 (마스킹된 값 전달)
  * @param onComplete 완료 버튼 클릭 콜백 (평문 입력값 전달)
+ * @param onCancel 취소 버튼 클릭 콜백
  * @param onError 에러 발생 콜백
  */
 @Composable
@@ -50,6 +52,7 @@ fun SecureKeypad(
     config: KeypadConfig = KeypadConfig(),
     onKeyPressed: (maskedValue: String) -> Unit = {},
     onComplete: (inputValue: String) -> Unit = {},
+    onCancel: () -> Unit = {},
     onError: (errorMessage: String) -> Unit = {}
 ) {
     // Context 가져오기
@@ -125,24 +128,34 @@ fun SecureKeypad(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .background(effectiveConfig.colors.backgroundColor) // 전체 배경색
             .navigationBarsPadding() // 네비게이션 바 패딩
     ) {
-        // 입력 표시 영역 (배경색 없음)
+        // 상단 헤더 (제목, 부제목, 취소 버튼)
+        KeypadHeader(
+            title = effectiveConfig.title,
+            subtitle = effectiveConfig.subtitle,
+            showCancelButton = effectiveConfig.showCancelButton,
+            cancelButtonText = effectiveConfig.cancelButtonText,
+            colors = effectiveConfig.colors,
+            onCancel = onCancel
+        )
+
+        // 입력 표시 영역
         InputDisplay(
             maskedText = maskedInput,
             colors = effectiveConfig.colors,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp) // 좌우 패딩
-                .padding(top = 12.dp, bottom = 12.dp) // 상하 패딩 (간격 포함)
+                .padding(horizontal = 8.dp)
+                .padding(top = 8.dp, bottom = 12.dp)
         )
 
-        // 키패드 레이아웃 (배경색 적용)
+        // 키패드 레이아웃
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(effectiveConfig.colors.backgroundColor) // 배경색 적용
-                .padding(horizontal = 8.dp, vertical = 12.dp) // 내부 여백
+                .padding(horizontal = 8.dp, vertical = 8.dp)
         ) {
             when (config.type) {
                 KeypadType.NUMERIC -> {

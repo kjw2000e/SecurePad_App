@@ -77,6 +77,14 @@ fun SampleScreen() {
                     config = KeypadConfig(
                         type = keypadType,
                         colors = KeypadColors.default(),
+                        // 새 기능: 제목 및 부제목
+                        title = if (keypadType == KeypadType.NUMERIC) "비밀번호 입력" else "비밀번호 입력",
+                        subtitle = if (keypadType == KeypadType.NUMERIC)
+                            "숫자 6자리를 입력해주세요"
+                        else
+                            "영문, 숫자, 특수문자를 조합해주세요",
+                        showCancelButton = true,
+                        cancelButtonText = "취소",
                         maskingChar = '●',
                         showMasking = false,
                         maxLength = if (keypadType == KeypadType.NUMERIC) 6 else 20,
@@ -93,6 +101,18 @@ fun SampleScreen() {
                             snackbarHostState.showSnackbar(
                                 message = "입력 완료 (길이: ${input.length}자)",
                                 actionLabel = "닫기"
+                            )
+                        }
+                    },
+                    onCancel = {
+                        // 취소 버튼 클릭 시 키패드 닫기
+                        selectedKeypadType = null
+                        maskedInput = ""
+                        actualInput = ""
+                        scope.launch {
+                            snackbarHostState.showSnackbar(
+                                message = "입력이 취소되었습니다",
+                                actionLabel = "확인"
                             )
                         }
                     },
