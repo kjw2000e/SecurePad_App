@@ -229,28 +229,12 @@ fun EnhancedSampleScreen() {
                     onComplete = { input ->
                         actualInput = input
                         showKeypad = false
-                        scope.launch {
-                            snackbarHostState.showSnackbar(
-                                message = "✓ 입력 완료! (${if (scenario.enableEncryption) "암호화됨" else "평문"})",
-                                actionLabel = "확인"
-                            )
-                        }
                     },
                     onCancel = {
                         showKeypad = false
                         maskedInput = ""
-                        scope.launch {
-                            snackbarHostState.showSnackbar(
-                                message = "입력이 취소되었습니다",
-                                actionLabel = "확인"
-                            )
-                        }
                     },
-                    onError = { errorMsg ->
-                        scope.launch {
-                            snackbarHostState.showSnackbar(message = errorMsg)
-                        }
-                    }
+                    onError = { /* 에러 무시 */ }
                 )
             }
         }
