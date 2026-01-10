@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
@@ -170,40 +171,83 @@ fun SecureKeypad(
             .background(effectiveConfig.colors.backgroundColor)
             .navigationBarsPadding()
     ) {
-        // 상단 헤더 (제목, 부제목, 취소 버튼)
-        KeypadHeader(
-            title = effectiveConfig.title,
-            subtitle = effectiveConfig.subtitle,
-            showCancelButton = effectiveConfig.showCancelButton,
-            cancelButtonText = effectiveConfig.cancelButtonText,
-            colors = effectiveConfig.colors,
-            onCancel = onCancel
-        )
+        // FULL 모드: 상단 여백 추가 (상태바 + 여유 공간)
+        if (effectiveConfig.displayMode == KeypadDisplayMode.FULL) {
+            Spacer(modifier = Modifier.height(80.dp))
+        }
 
-        // 입력 표시 영역
-        InputDisplay(
-            currentLength = maskedInput.length,
-            maxLength = effectiveConfig.maxLength,
-            config = effectiveConfig,
-            maskedText = maskedInput,
-            colors = effectiveConfig.colors,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp)
-                .padding(top = 8.dp, bottom = 4.dp)
-        )
+        // 상단 헤더 (COMPACT 모드에서는 숨김)
+        if (effectiveConfig.displayMode != KeypadDisplayMode.COMPACT) {
+            KeypadHeader(
+                title = effectiveConfig.title,
+                subtitle = effectiveConfig.subtitle,
+                showCancelButton = effectiveConfig.showCancelButton,
+                cancelButtonText = effectiveConfig.cancelButtonText,
+                colors = effectiveConfig.colors,
+                onCancel = onCancel
+            )
+        }
 
-        // 검증 에러 메시지
-        if (!validationResult.isValid && validationResult.errorMessage != null) {
-            Text(
-                text = validationResult.errorMessage!!,
-                color = androidx.compose.ui.graphics.Color(0xFFE0291D),
-                fontSize = 12.sp,
+        // FULL 모드: 입력 인디케이터를 헤더 바로 아래에 배치
+        if (effectiveConfig.displayMode == KeypadDisplayMode.FULL) {
+            InputDisplay(
+                currentLength = maskedInput.length,
+                maxLength = effectiveConfig.maxLength,
+                config = effectiveConfig,
+                maskedText = maskedInput,
+                colors = effectiveConfig.colors,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 4.dp),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    .padding(horizontal = 8.dp)
+                    .padding(top = 16.dp, bottom = 8.dp)
             )
+
+            // 검증 에러 메시지 (FULL 모드)
+            if (!validationResult.isValid && validationResult.errorMessage != null) {
+                Text(
+                    text = validationResult.errorMessage!!,
+                    color = androidx.compose.ui.graphics.Color(0xFFE0291D),
+                    fontSize = 12.sp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 4.dp),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+            }
+
+            // 키패드를 하단으로 밀기
+            Spacer(modifier = Modifier.weight(1f))
+        }
+
+        // HALF/COMPACT 모드: 입력 인디케이터
+        if (effectiveConfig.displayMode != KeypadDisplayMode.FULL) {
+            InputDisplay(
+                currentLength = maskedInput.length,
+                maxLength = effectiveConfig.maxLength,
+                config = effectiveConfig,
+                maskedText = maskedInput,
+                colors = effectiveConfig.colors,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp)
+                    .padding(
+                        top = if (effectiveConfig.displayMode == KeypadDisplayMode.COMPACT) 4.dp else 8.dp,
+                        bottom = 4.dp
+                    )
+            )
+
+            // 검증 에러 메시지 (HALF/COMPACT 모드)
+            if (!validationResult.isValid && validationResult.errorMessage != null) {
+                Text(
+                    text = validationResult.errorMessage!!,
+                    color = androidx.compose.ui.graphics.Color(0xFFE0291D),
+                    fontSize = 12.sp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 4.dp),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+            }
         }
 
         // 키패드 레이아웃
