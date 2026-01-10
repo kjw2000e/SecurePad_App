@@ -136,7 +136,11 @@ fun SampleScreen() {
                                 actionLabel = "확인"
                             )
                         }
-                    }
+                    },
+                    // 확장 콜백 테스트
+                    onShow = { println("MainActivity: Keypad Shown") },
+                    onHide = { println("MainActivity: Keypad Hidden") },
+                    onBackspace = { println("MainActivity: Backspace Pressed") }
                 )
             }
         }

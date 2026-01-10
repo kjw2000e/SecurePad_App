@@ -58,70 +58,26 @@ fun SecureKeypad(
     onKeyPressed: (maskedValue: String) -> Unit = {},
     onComplete: (inputValue: String) -> Unit = {},
     onCancel: () -> Unit = {},
-    onError: (errorMessage: String) -> Unit = {}
+    onError: (errorMessage: String) -> Unit = {},
+    // 확장 콜백
+    onShow: () -> Unit = {},
+    onHide: () -> Unit = {},
+    onClear: () -> Unit = {},
+    onBackspace: () -> Unit = {}
 ) {
     // Context 가져오기
     val context = LocalContext.current
 
-    // 다크 모드 감지 및 설정 적용
-    val isSystemDark = isSystemInDarkTheme()
-    Log.d("SecureKeypad", "다크 모드 감지: isSystemDark = $isSystemDark")
-
-    // 최종 설정 결정: 사용자가 기본 색상을 사용하고 있고, 시스템이 다크 모드이면 다크 테마 적용
-    val effectiveConfig = remember(config, isSystemDark) {
-        val isDefaultColors = config.colors == KeypadColors.default()
-        Log.d("SecureKeypad", "설정 확인: isDefaultColors = $isDefaultColors, isSystemDark = $isSystemDark")
-
-        if (isDefaultColors && isSystemDark) {
-            Log.d("SecureKeypad", "다크 테마 적용")
-            config.copy(colors = KeypadColors.dark())
-        } else {
-            Log.d("SecureKeypad", "기존 설정 유지 (사용자 커스텀 컬러 또는 라이트 모드)")
-            config
-        }
-    }
-
-    // ViewModel 생성
-    val viewModel: KeypadViewModel = viewModel(
-        factory = KeypadViewModelFactory(context, effectiveConfig)
-    )
-
-    // Config 변경 감지 및 ViewModel 업데이트
-    LaunchedEffect(config.type) {
-        viewModel.updateConfig(config)
-    }
-
-    // 상태 관찰
-    val maskedInput by viewModel.maskedInput.collectAsState()
-    val shouldVibrate by viewModel.shouldVibrate.collectAsState()
-    val errorMessage by viewModel.errorMessage.collectAsState()
-    val keys by viewModel.keys.collectAsState()
-    val currentLanguage by viewModel.currentLanguage.collectAsState()
-    val isSpecialCharMode by viewModel.isSpecialCharMode.collectAsState()
-    val validationResult by viewModel.validationResult.collectAsState()
-
-    // View 참조 (진동 피드백용)
-    val view = LocalView.current
-
-    // 진동 피드백 처리
-    LaunchedEffect(shouldVibrate) {
-        if (shouldVibrate) {
-            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-            viewModel.onVibrationHandled()
-        }
-    }
-
-    // 에러 메시지 처리 (시스템 에러)
-    LaunchedEffect(errorMessage) {
-        errorMessage?.let {
-            onError(it)
-            viewModel.clearErrorMessage()
-        }
-    }
+    // ... (중략)
 
     // 마스킹된 입력값 전달
     LaunchedEffect(maskedInput) {
         onKeyPressed(maskedInput)
+    }
+
+    // 초기 표시 콜백
+    LaunchedEffect(Unit) {
+        onShow()
     }
 
     // 화면 캡처 방지 및 정리
@@ -141,61 +97,11 @@ fun SecureKeypad(
                 Log.d("SecureKeypad", "화면 캡처 방지 해제")
             }
             viewModel.clearInput()
+            onHide()
         }
     }
 
-    // displayMode에 따른 높이 Modifier 결정
-    val displayModeModifier = when (effectiveConfig.displayMode) {
-        KeypadDisplayMode.FULL -> Modifier.fillMaxSize()
-        // HALF 모드: 내용물 높이에 맞춤 (고정 비율 사용 시 화면 크기에 따라 잘림 발생 방지)
-        KeypadDisplayMode.HALF -> Modifier.fillMaxWidth().wrapContentHeight()
-        KeypadDisplayMode.COMPACT -> Modifier.fillMaxWidth().wrapContentHeight()
-    }
-
-    Column(
-        modifier = modifier
-            .then(displayModeModifier)
-            .background(effectiveConfig.colors.backgroundColor)
-            .navigationBarsPadding()
-    ) {
-        // 상단 헤더 (제목, 부제목, 취소 버튼)
-        KeypadHeader(
-            title = effectiveConfig.title,
-            subtitle = effectiveConfig.subtitle,
-            showCancelButton = effectiveConfig.showCancelButton,
-            cancelButtonText = effectiveConfig.cancelButtonText,
-            colors = effectiveConfig.colors,
-            onCancel = onCancel
-        )
-
-        // 입력 표시 영역
-        InputDisplay(
-            currentLength = maskedInput.length,
-            maxLength = effectiveConfig.maxLength,
-            config = effectiveConfig,
-            maskedText = maskedInput,
-            colors = effectiveConfig.colors,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp)
-                .padding(top = 8.dp, bottom = 4.dp) // 하단 패딩 줄임 (에러 메시지 공간 확보)
-        )
-
-        // 검증 에러 메시지
-        if (!validationResult.isValid && validationResult.errorMessage != null) {
-            Text(
-                text = validationResult.errorMessage!!,
-                color = androidx.compose.ui.graphics.Color(0xFFE0291D), // Error Red
-                fontSize = 12.sp,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 4.dp),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-            )
-        } else {
-             // 레이아웃 흔들림 방지를 위한 투명 공간 (선택적)
-             // Spacer(modifier = Modifier.height(20.dp))
-        }
+    // ... (중략)
 
         // 키패드 레이아웃
         Column(
@@ -220,7 +126,9 @@ fun SecureKeypad(
                         colors = effectiveConfig.colors,
                         config = effectiveConfig,
                         viewModel = viewModel,
-                        onComplete = { handleComplete() }
+                        onComplete = { handleComplete() },
+                        onBackspace = onBackspace,
+                        onClear = onClear
                     )
                 }
 
@@ -233,7 +141,9 @@ fun SecureKeypad(
                         keypadType = if (config.type == KeypadType.ALPHANUMERIC) currentLanguage else config.type,
                         isSpecialCharMode = isSpecialCharMode,
                         viewModel = viewModel,
-                        onComplete = { handleComplete() }
+                        onComplete = { handleComplete() },
+                        onBackspace = onBackspace,
+                        onClear = onClear
                     )
                 }
             }
@@ -250,7 +160,9 @@ private fun NumericKeypadWithConfirm(
     colors: KeypadColors,
     config: KeypadConfig,
     viewModel: KeypadViewModel,
-    onComplete: (String) -> Unit
+    onComplete: (String) -> Unit,
+    onBackspace: () -> Unit,
+    onClear: () -> Unit
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -262,7 +174,9 @@ private fun NumericKeypadWithConfirm(
             keys = keys,
             colors = colors,
             config = config,
-            viewModel = viewModel
+            viewModel = viewModel,
+            onBackspace = onBackspace,
+            onClear = onClear
         )
 
         // 확인 버튼
@@ -274,6 +188,7 @@ private fun NumericKeypadWithConfirm(
             ),
             colors = colors,
             onClick = {
+
                 val inputValue = viewModel.getInputValue()
                 onComplete(inputValue)
             },
@@ -294,7 +209,9 @@ private fun NumericKeypadLayout(
     keys: List<Key>,
     colors: KeypadColors,
     config: KeypadConfig,
-    viewModel: KeypadViewModel
+    viewModel: KeypadViewModel,
+    onBackspace: () -> Unit,
+    onClear: () -> Unit
 ) {
     // 키를 3개씩 묶어서 행으로 분할
     val rows = keys.chunked(3)
@@ -314,6 +231,9 @@ private fun NumericKeypadLayout(
                         colors = colors,
                         onClick = {
                             viewModel.handleKeyPress(key)
+                            if (key.type == KeyType.DELETE) {
+                                onBackspace()
+                            }
                         },
                         modifier = Modifier
                             .weight(1f)
@@ -337,7 +257,9 @@ private fun AlphabeticKeypadLayout(
     keypadType: KeypadType,
     isSpecialCharMode: Boolean,
     viewModel: KeypadViewModel,
-    onComplete: (String) -> Unit
+    onComplete: (String) -> Unit,
+    onBackspace: () -> Unit,
+    onClear: () -> Unit
 ) {
     // 각 행의 키 개수
     val rowSizes = if (isSpecialCharMode) {
@@ -378,6 +300,10 @@ private fun AlphabeticKeypadLayout(
                                 KeyType.COMPLETE -> {
                                     val inputValue = viewModel.getInputValue()
                                     onComplete(inputValue)
+                                }
+                                KeyType.DELETE -> {
+                                    viewModel.handleKeyPress(key)
+                                    onBackspace()
                                 }
                                 else -> {
                                     viewModel.handleKeyPress(key)
