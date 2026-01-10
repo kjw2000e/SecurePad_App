@@ -148,6 +148,6 @@ fun PinScreen() {
 
 <div align="center">
 
-**Made with ❤️ by 한국정보인증 (KICA)**
+**Made with ❤️ by Jiwon**
 
 </div>
