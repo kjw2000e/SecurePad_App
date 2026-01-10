@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KICASecurePad - 한국정보인증 보안 키패드 라이브러리</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Unbounded:wght@700;900&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Unbounded:wght@700;900&display=swap"
+        rel="stylesheet">
     <style>
         :root {
             --bg-primary: #0a0a0f;
@@ -53,12 +56,19 @@
         }
 
         @keyframes gridMove {
-            0% { transform: translate(0, 0); }
-            100% { transform: translate(50px, 50px); }
+            0% {
+                transform: translate(0, 0);
+            }
+
+            100% {
+                transform: translate(50px, 50px);
+            }
         }
 
         /* Typography */
-        h1, h2, h3 {
+        h1,
+        h2,
+        h3 {
             font-family: 'Unbounded', sans-serif;
             font-weight: 900;
             letter-spacing: -0.02em;
@@ -106,8 +116,15 @@
         }
 
         @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
         }
 
         .logo-text {
@@ -179,6 +196,7 @@
                 opacity: 0;
                 transform: translateY(30px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -267,6 +285,7 @@
                 opacity: 0;
                 transform: translateX(50px);
             }
+
             to {
                 opacity: 1;
                 transform: translateX(0);
@@ -288,8 +307,15 @@
         }
 
         @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
         }
 
         .input-display {
@@ -488,15 +514,24 @@
                 opacity: 0;
                 transform: translateX(-50px);
             }
+
             to {
                 opacity: 1;
                 transform: translateX(0);
             }
         }
 
-        .layer:nth-child(1) { animation-delay: 0.2s; }
-        .layer:nth-child(2) { animation-delay: 0.4s; }
-        .layer:nth-child(3) { animation-delay: 0.6s; }
+        .layer:nth-child(1) {
+            animation-delay: 0.2s;
+        }
+
+        .layer:nth-child(2) {
+            animation-delay: 0.4s;
+        }
+
+        .layer:nth-child(3) {
+            animation-delay: 0.6s;
+        }
 
         .layer:hover {
             transform: translateX(10px);
@@ -557,9 +592,17 @@
             border-radius: 50%;
         }
 
-        .dot.red { background: #ff5f56; }
-        .dot.yellow { background: #ffbd2e; }
-        .dot.green { background: #27c93f; }
+        .dot.red {
+            background: #ff5f56;
+        }
+
+        .dot.yellow {
+            background: #ffbd2e;
+        }
+
+        .dot.green {
+            background: #27c93f;
+        }
 
         .code-title {
             margin-left: 15px;
@@ -578,10 +621,22 @@
             color: var(--text-primary);
         }
 
-        .keyword { color: var(--accent-purple); }
-        .string { color: var(--accent-green); }
-        .function { color: var(--accent-cyan); }
-        .comment { color: var(--text-muted); font-style: italic; }
+        .keyword {
+            color: var(--accent-purple);
+        }
+
+        .string {
+            color: var(--accent-green);
+        }
+
+        .function {
+            color: var(--accent-cyan);
+        }
+
+        .comment {
+            color: var(--text-muted);
+            font-style: italic;
+        }
 
         /* Stats Section */
         .stats {
@@ -666,7 +721,9 @@
 
         /* Responsive */
         @media (max-width: 1024px) {
-            .hero-grid, .stack-container {
+
+            .hero-grid,
+            .stack-container {
                 grid-template-columns: 1fr;
                 gap: 60px;
             }
@@ -703,6 +760,7 @@
         }
     </style>
 </head>
+
 <body>
     <header>
         <div class="container">
@@ -773,38 +831,45 @@
         <div class="container">
             <div class="section-header">
                 <h2>Enterprise-Ready Security</h2>
-                <p>Built for financial institutions, fintech apps, and high-security applications requiring keystroke-level encryption</p>
+                <p>Built for financial institutions, fintech apps, and high-security applications requiring
+                    keystroke-level encryption</p>
             </div>
             <div class="features-grid">
                 <div class="feature-card">
                     <div class="feature-icon">🛡️</div>
                     <h3>Multi-Layer Encryption</h3>
-                    <p>AES-256 encryption per keystroke with RSA-2048 key exchange and HMAC-SHA1 integrity verification. Zero plaintext exposure in memory.</p>
+                    <p>AES-256 encryption per keystroke with RSA-2048 key exchange and HMAC-SHA1 integrity verification.
+                        Zero plaintext exposure in memory.</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">🎯</div>
                     <h3>Randomized Layout</h3>
-                    <p>Dynamic key shuffling prevents shoulder surfing and pattern analysis attacks. Each session generates unique layouts.</p>
+                    <p>Dynamic key shuffling prevents shoulder surfing and pattern analysis attacks. Each session
+                        generates unique layouts.</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">🌏</div>
                     <h3>Multilingual Support</h3>
-                    <p>Native Korean (한글) input with real-time Jamo composition, English QWERTY, and numeric modes. Seamless language switching.</p>
+                    <p>Native Korean (한글) input with real-time Jamo composition, English QWERTY, and numeric modes.
+                        Seamless language switching.</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">⚡</div>
                     <h3>Jetpack Compose UI</h3>
-                    <p>Modern declarative UI built with Compose. Fully customizable themes, colors, and layouts with production-grade performance.</p>
+                    <p>Modern declarative UI built with Compose. Fully customizable themes, colors, and layouts with
+                        production-grade performance.</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">🎨</div>
                     <h3>Customizable Themes</h3>
-                    <p>Pre-built themes (Default, Toss-inspired) and complete design system control. Match your brand identity effortlessly.</p>
+                    <p>Pre-built themes (Default, KICA-style) and complete design system control. Match your brand
+                        identity effortlessly.</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">📱</div>
                     <h3>Mobile-Optimized</h3>
-                    <p>Haptic feedback, edge-to-edge display support, and accessibility features. Designed for modern Android devices (API 29+).</p>
+                    <p>Haptic feedback, edge-to-edge display support, and accessibility features. Designed for modern
+                        Android devices (API 29+).</p>
                 </div>
             </div>
         </div>
@@ -816,7 +881,8 @@
                 <div class="stack-content">
                     <h2 style="font-size: 48px; margin-bottom: 20px;">보안 아키텍처</h2>
                     <p style="color: var(--text-secondary); font-size: 16px; line-height: 1.8; margin-bottom: 40px;">
-                        Three-layer security architecture ensuring end-to-end protection from user input to server transmission.
+                        Three-layer security architecture ensuring end-to-end protection from user input to server
+                        transmission.
                         Each keystroke is independently encrypted with random padding to prevent pattern analysis.
                     </p>
                 </div>
@@ -824,21 +890,24 @@
                     <div class="layer">
                         <div class="layer-title">Layer 1: Input Protection</div>
                         <div class="layer-desc">
-                            Each keystroke encrypted with AES-256/CBC. Random 15-byte padding per input prevents frequency analysis even when same key pressed multiple times.
+                            Each keystroke encrypted with AES-256/CBC. Random 15-byte padding per input prevents
+                            frequency analysis even when same key pressed multiple times.
                         </div>
                         <div class="layer-tech">AES-256-CBC • PKCS5Padding • 16-byte blocks</div>
                     </div>
                     <div class="layer">
                         <div class="layer-title">Layer 2: Key Exchange</div>
                         <div class="layer-desc">
-                            Symmetric session key encrypted with RSA-2048 public key. Key loaded from assets (vkeypad_public.pem) ensures secure key distribution.
+                            Symmetric session key encrypted with RSA-2048 public key. Key loaded from assets
+                            (vkeypad_public.pem) ensures secure key distribution.
                         </div>
                         <div class="layer-tech">RSA-2048 • PKCS1Padding • 256-byte asymmetric encryption</div>
                     </div>
                     <div class="layer">
                         <div class="layer-title">Layer 3: Integrity Verification</div>
                         <div class="layer-desc">
-                            HMAC-SHA1 signature validates data integrity during transmission. Detects tampering and ensures authentic encrypted payload delivery.
+                            HMAC-SHA1 signature validates data integrity during transmission. Detects tampering and
+                            ensures authentic encrypted payload delivery.
                         </div>
                         <div class="layer-tech">HMAC-SHA1 • 20-byte MAC • Tamper detection</div>
                     </div>
@@ -864,7 +933,7 @@
                     <div class="code-title">MainActivity.kt</div>
                 </div>
                 <div class="code-content">
-<code><span class="keyword">import</span> com.kica.android.secure.keypad.<span class="function">SecureKeypad</span>
+                    <code><span class="keyword">import</span> com.kica.android.secure.keypad.<span class="function">SecureKeypad</span>
 <span class="keyword">import</span> com.kica.android.secure.keypad.domain.model.*
 
 <span class="comment">// Minimal setup - production-ready in 3 lines</span>
@@ -898,7 +967,7 @@
 <span class="function">SecureKeypad</span>(
     config = <span class="function">KeypadConfig</span>(
         type = KeypadType.<span class="keyword">ALPHANUMERIC</span>,
-        colors = KeypadColors.<span class="function">toss</span>(),
+        colors = KeypadColors.<span class="function">kica</span>(),
         enableHapticFeedback = <span class="keyword">true</span>
     ),
     onComplete = { input <span class="keyword">-></span>
@@ -941,7 +1010,8 @@
                     <h4>KICASecurePad</h4>
                     <p>
                         Enterprise-grade secure input library for Android.
-                        Developed with military-grade encryption standards for financial and authentication applications.
+                        Developed with military-grade encryption standards for financial and authentication
+                        applications.
                     </p>
                 </div>
                 <div class="footer-links">
@@ -1100,4 +1170,5 @@
         }
     </script>
 </body>
+
 </html>

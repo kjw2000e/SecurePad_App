@@ -54,12 +54,12 @@ data class KeypadColors(
         )
 
         /**
-         * 토스 스타일 테마
+         * KICA 스타일 테마
          * - 심플하고 모던한 느낌
          * - 밝은 배경에 흰색 버튼
          * - 미니멀한 디자인
          */
-        fun toss() = KeypadColors(
+        fun kica() = KeypadColors(
             backgroundColor = Color(0xFFF9FAFB),        // 밝은 회색 배경
             keyBackgroundColor = Color(0xFFFFFFFF),     // 흰색 버튼
             keyTextColor = Color(0xFF191F28),           // 거의 검정 텍스트

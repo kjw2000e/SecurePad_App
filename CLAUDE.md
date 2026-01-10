@@ -240,7 +240,7 @@ SecureKeypad(
     modifier = Modifier.fillMaxWidth(),
     config = KeypadConfig(
         type = KeypadType.ALPHANUMERIC,
-        colors = KeypadColors.toss(), // Toss-inspired theme
+        colors = KeypadColors.kica(), // KICA-style theme
         maskingChar = '●',
         showMasking = false, // Show actual characters
         maxLength = 20,
@@ -290,7 +290,7 @@ Modify KeypadConfig parameters (domain/model/KeypadConfig.kt):
 
 **Visual Customization**:
 - `colors`: KeypadColors (background, text, button colors)
-  - Predefined themes: `KeypadColors.default()`, `KeypadColors.toss()`
+  - Predefined themes: `KeypadColors.default()`, `KeypadColors.kica()`
 - `buttonHeight`: Dp value for button height (default: 48.dp)
 - `maskingChar`: Character for masked display (default: '●')
 - `showMasking`: Boolean to show masking (default: true)
@@ -314,7 +314,7 @@ Modify KeypadConfig parameters (domain/model/KeypadConfig.kt):
 ```kotlin
 KeypadConfig(
     type = KeypadType.ALPHANUMERIC,
-    colors = KeypadColors.toss(),
+    colors = KeypadColors.kica(),
     maskingChar = '●',
     showMasking = false, // Show actual input
     maxLength = 20,

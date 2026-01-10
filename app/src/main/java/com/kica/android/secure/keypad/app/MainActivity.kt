@@ -77,7 +77,7 @@ class MainActivity : AppCompatActivity() {
 
 // 테마 프리셋 정의
 enum class ThemePreset(val displayName: String, val colors: KeypadColors) {
-    DEFAULT("라이트", KeypadColors.toss()),  // 기본을 라이트(토스) 테마로
+    DEFAULT("라이트", KeypadColors.kica()),  // 기본을 라이트(KICA) 테마로
     DARK("다크", KeypadColors.dark()),
     KICA("KICA", KeypadColors(
         // KICA 브랜드 컬러 (파랑, 연두, 주황 포인트 + 차분한 키패드)
