@@ -266,8 +266,8 @@ class KeypadViewModel(
                         keyDataManager?.removeKeyData()
                     }
                     inputBuffer.append(assembled)
-                    // 암호화하여 추가
-                    keyDataManager?.appendKeyData(assembled.toByteArray(Charsets.UTF_8))
+                    // 암호화하여 추가 (UTF-8 다중 바이트 지원)
+                    keyDataManager?.appendCharacter(assembled)
                 }
             } else {
                 // 한글이 아닌 경우 (영문, 숫자 등)
@@ -287,13 +287,13 @@ class KeypadViewModel(
                         inputBuffer.append(completed)
                         // 마지막 한글 데이터 업데이트
                         keyDataManager?.removeKeyData()
-                        keyDataManager?.appendKeyData(completed.toByteArray(Charsets.UTF_8))
+                        keyDataManager?.appendCharacter(completed)
                     }
                 }
 
                 inputBuffer.append(char)
-                // 암호화하여 추가
-                keyDataManager?.appendKeyData(char.toString().toByteArray(Charsets.UTF_8))
+                // 암호화하여 추가 (UTF-8 다중 바이트 지원)
+                keyDataManager?.appendCharacter(char.toString())
             }
         } catch (e: Exception) {
             _errorMessage.value = "암호화 오류: ${e.message}"
@@ -366,7 +366,7 @@ class KeypadViewModel(
                 // KeyDataManager 업데이트
                 keyDataManager?.removeKeyData()
                 if (result.isNotEmpty()) {
-                    keyDataManager?.appendKeyData(result.toByteArray(Charsets.UTF_8))
+                    keyDataManager?.appendCharacter(result)
                 }
             } else {
                 // 이전 글자 삭제
@@ -427,13 +427,13 @@ class KeypadViewModel(
                     inputBuffer.append(completed)
                     // 마지막 한글 데이터 업데이트
                     keyDataManager?.removeKeyData()
-                    keyDataManager?.appendKeyData(completed.toByteArray(Charsets.UTF_8))
+                    keyDataManager?.appendCharacter(completed)
                 }
             }
 
             // 공백 추가
             inputBuffer.append(' ')
-            keyDataManager?.appendKeyData(" ".toByteArray(Charsets.UTF_8))
+            keyDataManager?.appendCharacter(" ")
         } catch (e: Exception) {
             _errorMessage.value = "공백 입력 오류: ${e.message}"
         }
@@ -481,7 +481,7 @@ class KeypadViewModel(
                         inputBuffer.append(completed)
                         // KeyDataManager 업데이트
                         keyDataManager?.removeKeyData()
-                        keyDataManager?.appendKeyData(completed.toByteArray(Charsets.UTF_8))
+                        keyDataManager?.appendCharacter(completed)
                     }
                 }
                 keyDataManager?.encryptedE2eDataHex ?: ""
