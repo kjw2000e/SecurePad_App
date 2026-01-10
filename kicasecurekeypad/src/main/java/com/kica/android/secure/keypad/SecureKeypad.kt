@@ -146,7 +146,8 @@ fun SecureKeypad(
     // displayMode에 따른 높이 Modifier 결정
     val displayModeModifier = when (effectiveConfig.displayMode) {
         KeypadDisplayMode.FULL -> Modifier.fillMaxSize()
-        KeypadDisplayMode.HALF -> Modifier.fillMaxWidth().fillMaxHeight(0.55f)
+        // HALF 모드: 내용물 높이에 맞춤 (고정 비율 사용 시 화면 크기에 따라 잘림 발생 방지)
+        KeypadDisplayMode.HALF -> Modifier.fillMaxWidth().wrapContentHeight()
         KeypadDisplayMode.COMPACT -> Modifier.fillMaxWidth().wrapContentHeight()
     }
 
