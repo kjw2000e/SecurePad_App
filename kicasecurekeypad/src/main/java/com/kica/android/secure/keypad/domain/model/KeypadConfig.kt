@@ -80,5 +80,8 @@ data class KeypadConfig(
      *
      * inputIndicatorStyle이 TEXT가 아닐 때 유효합니다.
      */
-    val showFixedInputSlots: Boolean = true
+    val showFixedInputSlots: Boolean = true,
+
+    /** 입력값 검증 설정 */
+    val validation: InputValidation = InputValidation()
 )

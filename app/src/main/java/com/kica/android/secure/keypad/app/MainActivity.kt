@@ -36,6 +36,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.kica.android.secure.keypad.SecureKeypad
 import com.kica.android.secure.keypad.domain.model.InputIndicatorStyle
+import com.kica.android.secure.keypad.domain.model.InputValidation
 import com.kica.android.secure.keypad.domain.model.KeypadConfig
 import com.kica.android.secure.keypad.domain.model.KeypadColors
 import com.kica.android.secure.keypad.domain.model.KeypadDisplayMode
@@ -96,6 +97,10 @@ fun SampleScreen() {
                         // 새 기능: 고정 슬롯 표시 (숫자 키패드는 PIN처럼 고정, 문자는 가변)
                         showFixedInputSlots = keypadType == KeypadType.NUMERIC,
                         maxLength = if (keypadType == KeypadType.NUMERIC) 6 else 20,
+                        // 새 기능: 입력값 검증 (최소 길이 제한)
+                        validation = InputValidation(
+                            minLength = if (keypadType == KeypadType.NUMERIC) 4 else 8
+                        ),
                         randomizeLayout = false,
                         enableHapticFeedback = true,
                         enableEncryption = true  // 암호화 활성화

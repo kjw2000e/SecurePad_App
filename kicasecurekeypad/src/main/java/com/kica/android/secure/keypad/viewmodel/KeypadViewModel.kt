@@ -11,8 +11,8 @@ import com.kica.android.secure.keypad.domain.model.Key
 import com.kica.android.secure.keypad.domain.model.KeyType
 import com.kica.android.secure.keypad.domain.model.KeypadConfig
 import com.kica.android.secure.keypad.domain.model.KeypadType
-import com.kica.android.secure.keypad.security.KeyDataManager
-import com.kica.android.secure.keypad.utils.HangulAssembler
+import com.kica.android.secure.keypad.domain.model.InputValidation
+import com.kica.android.secure.keypad.domain.model.ValidationResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -48,6 +48,10 @@ class KeypadViewModel(
     private val _maskedInput = MutableStateFlow("")
     val maskedInput: StateFlow<String> = _maskedInput.asStateFlow()
 
+    // 검증 결과 State
+    private val _validationResult = MutableStateFlow(ValidationResult.valid())
+    val validationResult: StateFlow<ValidationResult> = _validationResult.asStateFlow()
+
     // 현재 언어 (ENGLISH/KOREAN 전환용)
     private val _currentLanguage = MutableStateFlow(
         when (config.type) {
@@ -58,6 +62,7 @@ class KeypadViewModel(
     )
     val currentLanguage: StateFlow<KeypadType> = _currentLanguage.asStateFlow()
 
+    // ... (기존 필드 유지)
     // Shift 상태 (대문자/쌍자음)
     private val _isShifted = MutableStateFlow(false)
     val isShifted: StateFlow<Boolean> = _isShifted.asStateFlow()
@@ -96,6 +101,47 @@ class KeypadViewModel(
         // 초기 키 목록 로드
         loadKeys()
     }
+
+    /**
+     * 입력값 검증 수행
+     */
+    private fun validateInput() {
+        val length = if (config.enableEncryption) keyDataManager?.inputCount ?: 0 else inputBuffer.length
+        val text = if (config.enableEncryption) "" else inputBuffer.toString()
+        val validation = config.validation
+
+        // 1. 최소 길이 검증
+        if (validation.minLength != null && length < validation.minLength) {
+            _validationResult.value = ValidationResult.invalid("최소 ${validation.minLength}자 이상 입력해주세요.")
+            return
+        }
+
+        // 2. 최대 길이 검증 (이미 입력 시 막히지만, 한번 더 확인)
+        val effectiveMaxLength = validation.maxLength ?: config.maxLength
+        if (effectiveMaxLength != null && length > effectiveMaxLength) {
+            _validationResult.value = ValidationResult.invalid("최대 입력 길이를 초과했습니다.")
+            return
+        }
+
+        // 3. 정규식 & 커스텀 검증 (평문 모드에서만 가능)
+        if (!config.enableEncryption) {
+            if (validation.regex != null && !validation.regex.matches(text)) {
+                _validationResult.value = ValidationResult.invalid(validation.regexErrorMessage ?: "입력 형식이 올바르지 않습니다.")
+                return
+            }
+
+            if (validation.customValidator != null) {
+                val customResult = validation.customValidator.invoke(text)
+                if (!customResult.isValid) {
+                    _validationResult.value = customResult
+                    return
+                }
+            }
+        }
+
+        _validationResult.value = ValidationResult.valid()
+    }
+
 
     /**
      * 키 입력 처리
@@ -229,6 +275,7 @@ class KeypadViewModel(
 
             inputBuffer.append(char)
         }
+        validateInput()
     }
 
     /**
@@ -295,9 +342,11 @@ class KeypadViewModel(
                 // 암호화하여 추가 (UTF-8 다중 바이트 지원)
                 keyDataManager?.appendCharacter(char.toString())
             }
+            }
         } catch (e: Exception) {
             _errorMessage.value = "암호화 오류: ${e.message}"
         }
+        validateInput()
     }
 
     /**
@@ -317,6 +366,7 @@ class KeypadViewModel(
             if (config.enableHapticFeedback) {
                 triggerVibration()
             }
+            validateInput()
         }
     }
 
@@ -403,6 +453,7 @@ class KeypadViewModel(
 
         // 공백 추가
         inputBuffer.append(' ')
+        validateInput()
     }
 
     /**
@@ -437,6 +488,7 @@ class KeypadViewModel(
         } catch (e: Exception) {
             _errorMessage.value = "공백 입력 오류: ${e.message}"
         }
+        validateInput()
     }
 
     /**
@@ -522,6 +574,7 @@ class KeypadViewModel(
 
             updateMaskedDisplay()
             _errorMessage.value = null
+            validateInput()
         }
     }
 

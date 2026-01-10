@@ -98,6 +98,7 @@ fun SecureKeypad(
     val keys by viewModel.keys.collectAsState()
     val currentLanguage by viewModel.currentLanguage.collectAsState()
     val isSpecialCharMode by viewModel.isSpecialCharMode.collectAsState()
+    val validationResult by viewModel.validationResult.collectAsState()
 
     // View 참조 (진동 피드백용)
     val view = LocalView.current
@@ -110,7 +111,7 @@ fun SecureKeypad(
         }
     }
 
-    // 에러 메시지 처리
+    // 에러 메시지 처리 (시스템 에러)
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
             onError(it)
@@ -177,8 +178,24 @@ fun SecureKeypad(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 8.dp)
-                .padding(top = 8.dp, bottom = 12.dp)
+                .padding(top = 8.dp, bottom = 4.dp) // 하단 패딩 줄임 (에러 메시지 공간 확보)
         )
+
+        // 검증 에러 메시지
+        if (!validationResult.isValid && validationResult.errorMessage != null) {
+            Text(
+                text = validationResult.errorMessage!!,
+                color = androidx.compose.ui.graphics.Color(0xFFE0291D), // Error Red
+                fontSize = 12.sp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 4.dp),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+        } else {
+             // 레이아웃 흔들림 방지를 위한 투명 공간 (선택적)
+             // Spacer(modifier = Modifier.height(20.dp))
+        }
 
         // 키패드 레이아웃
         Column(
@@ -186,6 +203,15 @@ fun SecureKeypad(
                 .fillMaxWidth()
                 .padding(horizontal = 8.dp, vertical = 8.dp)
         ) {
+            val handleComplete = {
+                if (validationResult.isValid) {
+                    onComplete(viewModel.getInputValue())
+                } else {
+                    // 유효하지 않으면 피드백 (진동 등)
+                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                }
+            }
+
             when (config.type) {
                 KeypadType.NUMERIC -> {
                     // 숫자 키패드: 확인 버튼 + 3열 고정 그리드
@@ -194,7 +220,7 @@ fun SecureKeypad(
                         colors = effectiveConfig.colors,
                         config = effectiveConfig,
                         viewModel = viewModel,
-                        onComplete = onComplete
+                        onComplete = { handleComplete() }
                     )
                 }
 
@@ -207,7 +233,7 @@ fun SecureKeypad(
                         keypadType = if (config.type == KeypadType.ALPHANUMERIC) currentLanguage else config.type,
                         isSpecialCharMode = isSpecialCharMode,
                         viewModel = viewModel,
-                        onComplete = onComplete
+                        onComplete = { handleComplete() }
                     )
                 }
             }
