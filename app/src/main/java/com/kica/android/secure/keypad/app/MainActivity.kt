@@ -90,11 +90,8 @@ fun SampleScreen() {
                         showCancelButton = true,
                         cancelButtonText = "취소",
                         maskingChar = '●',
-                        // 새 기능: 인디케이터 스타일 (숫자 키패드만 DOT 스타일)
-                        inputIndicatorStyle = if (keypadType == KeypadType.NUMERIC)
-                            InputIndicatorStyle.DOT
-                        else
-                            InputIndicatorStyle.TEXT,
+                        // 새 기능: 인디케이터 스타일 (모두 DOT 스타일 적용)
+                        inputIndicatorStyle = InputIndicatorStyle.DOT,
                         showMasking = false,
                         maxLength = if (keypadType == KeypadType.NUMERIC) 6 else 20,
                         randomizeLayout = false,
