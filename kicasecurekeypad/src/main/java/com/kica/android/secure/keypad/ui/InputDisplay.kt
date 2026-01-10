@@ -79,34 +79,44 @@ fun InputDisplay(
             contentAlignment = Alignment.Center
         ) {
             // maxLength가 없거나 TEXT 스타일이면 기존 텍스트 방식
-            if (maxLength == null || config.inputIndicatorStyle == InputIndicatorStyle.TEXT) {
+            if (maxLength == null && config.inputIndicatorStyle == InputIndicatorStyle.TEXT) {
                 TextStyleIndicator(
                     maskedText = maskedText,
                     textColor = colors.inputDisplayTextColor
                 )
             } else {
+                // 고정 길이 슬롯 표시 여부 확인
+                // showFixedInputSlots가 false이면 maxLength가 있어도 현재 길이만큼만 표시
+                val targetLength = if (config.showFixedInputSlots && maxLength != null) maxLength else currentLength
+                
                 // 인디케이터 스타일에 따라 렌더링
                 when (config.inputIndicatorStyle) {
                     InputIndicatorStyle.DOT -> DotStyleIndicator(
                         currentLength = currentLength,
-                        maxLength = maxLength,
+                        totalSlots = targetLength,
+                        showEmptySlots = config.showFixedInputSlots && maxLength != null,
                         filledColor = colors.inputDisplayTextColor,
                         emptyColor = colors.inputDisplayTextColor.copy(alpha = 0.3f)
                     )
                     InputIndicatorStyle.UNDERLINE -> UnderlineStyleIndicator(
                         currentLength = currentLength,
-                        maxLength = maxLength,
+                        totalSlots = targetLength,
+                        showEmptySlots = config.showFixedInputSlots && maxLength != null,
                         filledColor = colors.inputDisplayTextColor,
                         emptyColor = colors.inputDisplayTextColor.copy(alpha = 0.3f)
                     )
                     InputIndicatorStyle.BOX -> BoxStyleIndicator(
                         currentLength = currentLength,
-                        maxLength = maxLength,
+                        totalSlots = targetLength,
+                        showEmptySlots = config.showFixedInputSlots && maxLength != null,
                         filledColor = colors.inputDisplayTextColor,
                         emptyColor = colors.inputDisplayTextColor.copy(alpha = 0.3f)
                     )
                     InputIndicatorStyle.TEXT -> {
-                        // 이미 위에서 처리됨
+                         TextStyleIndicator(
+                            maskedText = maskedText,
+                            textColor = colors.inputDisplayTextColor
+                        )
                     }
                 }
             }
@@ -152,21 +162,36 @@ private fun TextStyleIndicator(
 }
 
 /**
- * DOT 스타일 (●●●○○○)
+ * DOT 스타일 (●●●○○○ 또는 ●●●)
  */
 @Composable
 private fun DotStyleIndicator(
     currentLength: Int,
-    maxLength: Int,
+    totalSlots: Int,
+    showEmptySlots: Boolean,
     filledColor: Color,
     emptyColor: Color
 ) {
+    // 아무것도 입력되지 않았고 고정 슬롯도 아니라면 "입력 대기" 텍스트 표시 가능하지만
+    // 디자인 통일성을 위해 빈 상태로 둠 (또는 플레이스홀더)
+    if (totalSlots == 0) {
+        Text(
+            text = "입력 대기",
+            fontSize = 16.sp,
+            color = emptyColor,
+            textAlign = TextAlign.Center
+        )
+        return
+    }
+
     Row(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        repeat(maxLength) { index ->
-            val isFilled = index < currentLength
+        repeat(totalSlots) { index ->
+            // 고정 슬롯 모드일 때는 maxLength 기준, 아니면 0부터 시작하므로 항상 채워짐
+            val isFilled = if (showEmptySlots) index < currentLength else true
+            
             Box(
                 modifier = Modifier
                     .size(16.dp)
@@ -188,16 +213,27 @@ private fun DotStyleIndicator(
 @Composable
 private fun UnderlineStyleIndicator(
     currentLength: Int,
-    maxLength: Int,
+    totalSlots: Int,
+    showEmptySlots: Boolean,
     filledColor: Color,
     emptyColor: Color
 ) {
+    if (totalSlots == 0) {
+         Text(
+            text = "입력 대기",
+            fontSize = 16.sp,
+            color = emptyColor,
+            textAlign = TextAlign.Center
+        )
+        return
+    }
+
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        repeat(maxLength) { index ->
-            val isFilled = index < currentLength
+        repeat(totalSlots) { index ->
+            val isFilled = if (showEmptySlots) index < currentLength else true
             Box(
                 modifier = Modifier
                     .width(24.dp)
@@ -217,16 +253,27 @@ private fun UnderlineStyleIndicator(
 @Composable
 private fun BoxStyleIndicator(
     currentLength: Int,
-    maxLength: Int,
+    totalSlots: Int,
+    showEmptySlots: Boolean,
     filledColor: Color,
     emptyColor: Color
 ) {
+    if (totalSlots == 0) {
+         Text(
+            text = "입력 대기",
+            fontSize = 16.sp,
+            color = emptyColor,
+            textAlign = TextAlign.Center
+        )
+        return
+    }
+
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        repeat(maxLength) { index ->
-            val isFilled = index < currentLength
+        repeat(totalSlots) { index ->
+            val isFilled = if (showEmptySlots) index < currentLength else true
             Box(
                 modifier = Modifier
                     .size(14.dp)

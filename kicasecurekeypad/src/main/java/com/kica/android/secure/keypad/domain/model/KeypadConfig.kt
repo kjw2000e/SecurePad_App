@@ -70,5 +70,15 @@ data class KeypadConfig(
      * true로 설정하면 키패드가 표시되는 동안 스크린샷, 화면 녹화가 차단됩니다.
      * 키패드가 닫히면 자동으로 해제됩니다.
      */
-    val preventScreenCapture: Boolean = true
+    val preventScreenCapture: Boolean = true,
+
+    /**
+     * 고정 길이 입력 슬롯 표시 여부
+     *
+     * true: maxLength만큼 슬롯을 미리 표시 (예: ●●●○○○) - PIN 번호 등에 적합
+     * false: 입력된 길이만큼만 인디케이터 표시 (예: ●●●) - 일반 비밀번호 등에 적합
+     *
+     * inputIndicatorStyle이 TEXT가 아닐 때 유효합니다.
+     */
+    val showFixedInputSlots: Boolean = true
 )

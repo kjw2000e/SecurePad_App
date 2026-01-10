@@ -93,6 +93,8 @@ fun SampleScreen() {
                         // 새 기능: 인디케이터 스타일 (모두 DOT 스타일 적용)
                         inputIndicatorStyle = InputIndicatorStyle.DOT,
                         showMasking = false,
+                        // 새 기능: 고정 슬롯 표시 (숫자 키패드는 PIN처럼 고정, 문자는 가변)
+                        showFixedInputSlots = keypadType == KeypadType.NUMERIC,
                         maxLength = if (keypadType == KeypadType.NUMERIC) 6 else 20,
                         randomizeLayout = false,
                         enableHapticFeedback = true,
