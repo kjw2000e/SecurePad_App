@@ -59,5 +59,13 @@ data class KeypadConfig(
     val buttonHeight: Dp = 48.dp,
 
     /** 암호화 활성화 (true면 KeyDataManager 사용) */
-    val enableEncryption: Boolean = false
+    val enableEncryption: Boolean = false,
+
+    /**
+     * 화면 캡처 방지 (FLAG_SECURE)
+     *
+     * true로 설정하면 키패드가 표시되는 동안 스크린샷, 화면 녹화가 차단됩니다.
+     * 키패드가 닫히면 자동으로 해제됩니다.
+     */
+    val preventScreenCapture: Boolean = true
 )

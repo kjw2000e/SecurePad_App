@@ -34,6 +34,7 @@ import com.kica.android.secure.keypad.domain.model.KeypadType
 import com.kica.android.secure.keypad.ui.InputDisplay
 import com.kica.android.secure.keypad.ui.KeypadButton
 import com.kica.android.secure.keypad.ui.KeypadHeader
+import com.kica.android.secure.keypad.utils.findActivity
 import com.kica.android.secure.keypad.viewmodel.KeypadViewModel
 
 /**
@@ -118,9 +119,22 @@ fun SecureKeypad(
         onKeyPressed(maskedInput)
     }
 
-    // 정리
-    DisposableEffect(Unit) {
+    // 화면 캡처 방지 및 정리
+    DisposableEffect(effectiveConfig.preventScreenCapture) {
+        // FLAG_SECURE 적용
+        if (effectiveConfig.preventScreenCapture) {
+            val activity = context.findActivity()
+            activity?.window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+            Log.d("SecureKeypad", "화면 캡처 방지 활성화 (FLAG_SECURE)")
+        }
+
         onDispose {
+            // FLAG_SECURE 해제
+            if (effectiveConfig.preventScreenCapture) {
+                val activity = context.findActivity()
+                activity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+                Log.d("SecureKeypad", "화면 캡처 방지 해제")
+            }
             viewModel.clearInput()
         }
     }
