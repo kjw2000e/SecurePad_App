@@ -25,8 +25,14 @@ data class KeypadConfig(
     /** 취소 버튼 텍스트 */
     val cancelButtonText: String = "취소",
 
-    /** 마스킹 문자 */
+    /** 마스킹 문자 (채워진 상태) */
     val maskingChar: Char = '●',
+
+    /** 미입력 마스킹 문자 (비어있는 상태) */
+    val emptyMaskingChar: Char = '○',
+
+    /** 입력 상태 표시 스타일 */
+    val inputIndicatorStyle: InputIndicatorStyle = InputIndicatorStyle.DOT,
 
     /** 마스킹 표시 여부 (false면 실제 입력 표시) */
     val showMasking: Boolean = true,

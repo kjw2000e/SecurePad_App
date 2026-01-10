@@ -35,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.kica.android.secure.keypad.SecureKeypad
+import com.kica.android.secure.keypad.domain.model.InputIndicatorStyle
 import com.kica.android.secure.keypad.domain.model.KeypadConfig
 import com.kica.android.secure.keypad.domain.model.KeypadColors
 import com.kica.android.secure.keypad.domain.model.KeypadType
@@ -86,6 +87,11 @@ fun SampleScreen() {
                         showCancelButton = true,
                         cancelButtonText = "취소",
                         maskingChar = '●',
+                        // 새 기능: 인디케이터 스타일 (숫자 키패드만 DOT 스타일)
+                        inputIndicatorStyle = if (keypadType == KeypadType.NUMERIC)
+                            InputIndicatorStyle.DOT
+                        else
+                            InputIndicatorStyle.TEXT,
                         showMasking = false,
                         maxLength = if (keypadType == KeypadType.NUMERIC) 6 else 20,
                         randomizeLayout = false,

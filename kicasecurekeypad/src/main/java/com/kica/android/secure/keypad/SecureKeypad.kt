@@ -143,6 +143,9 @@ fun SecureKeypad(
 
         // 입력 표시 영역
         InputDisplay(
+            currentLength = maskedInput.length,
+            maxLength = effectiveConfig.maxLength,
+            config = effectiveConfig,
             maskedText = maskedInput,
             colors = effectiveConfig.colors,
             modifier = Modifier
