@@ -13,6 +13,8 @@ import com.kica.android.secure.keypad.domain.model.KeypadConfig
 import com.kica.android.secure.keypad.domain.model.KeypadType
 import com.kica.android.secure.keypad.domain.model.InputValidation
 import com.kica.android.secure.keypad.domain.model.ValidationResult
+import com.kica.android.secure.keypad.security.KeyDataManager
+import com.kica.android.secure.keypad.utils.HangulAssembler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -342,7 +344,6 @@ class KeypadViewModel(
                 // 암호화하여 추가 (UTF-8 다중 바이트 지원)
                 keyDataManager?.appendCharacter(char.toString())
             }
-            }
         } catch (e: Exception) {
             _errorMessage.value = "암호화 오류: ${e.message}"
         }
@@ -564,7 +565,7 @@ class KeypadViewModel(
             // StringBuilder는 내부적으로 char[]를 사용하므로 덮어쓰기
             repeat(inputBuffer.length) { inputBuffer.setCharAt(it, '\u0000') }
             inputBuffer.clear()
-            
+
             hangulAssembler.clear()
 
             // 암호화 모드면 KeyDataManager도 초기화
@@ -592,7 +593,7 @@ class KeypadViewModel(
             // inputBuffer 보안 클리어
             repeat(inputBuffer.length) { inputBuffer.setCharAt(it, '\u0000') }
             inputBuffer.clear()
-            
+
             hangulAssembler.clear()
 
             // KeyDataManager 전체 보안 초기화
