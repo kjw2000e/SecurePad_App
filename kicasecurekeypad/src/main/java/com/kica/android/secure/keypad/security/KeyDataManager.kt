@@ -9,6 +9,11 @@ import java.security.SecureRandom
 /**
  * 키 입력 데이터 관리자 (UTF-8 다중 바이트 문자 지원)
  *
+ * ## 암호화 방식
+ * - AES-256: 32바이트 키 사용
+ * - IV: 16바이트 별도 생성 (키와 분리)
+ * - 키 + IV 결합: 48바이트를 RSA-2048로 암호화하여 서버 전송
+ *
  * ## 암호화 블록 포맷 (32 bytes per character)
  * ```
  * | Length (1 byte) | Data (max 15 bytes) | Padding (16-Length bytes) | Random (16 bytes) |
@@ -26,7 +31,8 @@ import java.security.SecureRandom
  */
 class KeyDataManager private constructor() {
 
-    private val symmetricKey = ByteArray(LEN_SYMMETRIC_KEY)
+    // 48바이트: 32바이트 AES-256 키 + 16바이트 IV
+    private val symmetricKeyWithIV = ByteArray(LEN_COMBINED_KEY_IV)
     private val encryptedSymmetricKey: ByteArray = ByteArray(LEN_ASYMMETRIC_KEY)
     private val secureRandom = SecureRandom()
 
@@ -56,7 +62,7 @@ class KeyDataManager private constructor() {
     /**
      * 초기화
      *
-     * 변수 초기화, 대칭키 생성, 대칭키 암호화
+     * 변수 초기화, AES-256 키 생성, IV 생성, RSA 암호화
      *
      * @throws KeyDataException
      */
@@ -66,11 +72,17 @@ class KeyDataManager private constructor() {
         encryptedBlocks.clear()
         plainCharacters.clear()
 
-        // 대칭키 생성
-        val newKey = KeyManager.generateKey(LEN_SYMMETRIC_KEY)
-        System.arraycopy(newKey, 0, symmetricKey, 0, LEN_SYMMETRIC_KEY)
+        // AES-256 키 생성 (표준 KeyGenerator 사용)
+        val secretKey = KeyManager.generateAESKey()
 
-        // RSA로 대칭키 암호화
+        // IV 생성 (16바이트 랜덤)
+        val iv = KeyManager.generateIV()
+
+        // 키 + IV 결합 (48바이트)
+        val combined = KeyManager.combineKeyAndIV(secretKey, iv)
+        System.arraycopy(combined, 0, symmetricKeyWithIV, 0, LEN_COMBINED_KEY_IV)
+
+        // RSA로 결합된 키 암호화
         encryptSymmetricKey()
     }
 
@@ -106,13 +118,13 @@ class KeyDataManager private constructor() {
             secureRandom.nextBytes(randomPadding)
             System.arraycopy(randomPadding, 0, block, 1 + charBytes.size, randomPadding.size)
 
-            // AES 암호화 (2개의 16바이트 블록)
-            val encryptedBlock1 = AESHelper.encrypt(symmetricKey, block.copyOfRange(0, 16))
-            val encryptedBlock2 = AESHelper.encrypt(symmetricKey, block.copyOfRange(16, 32))
+            // 키와 IV 추출
+            val key = KeyManager.extractKey(symmetricKeyWithIV)
+            val iv = KeyManager.extractIV(symmetricKeyWithIV)
 
-            if (encryptedBlock1 == null || encryptedBlock2 == null) {
-                throw KeyDataException("Failed to encrypt character data.")
-            }
+            // AES-256 암호화 (2개의 16바이트 블록)
+            val encryptedBlock1 = AESHelper.encrypt(key, iv, block.copyOfRange(0, 16))
+            val encryptedBlock2 = AESHelper.encrypt(key, iv, block.copyOfRange(16, 32))
 
             // 암호화된 블록 결합
             val encryptedFull = ByteArray(LEN_BLOCK)
@@ -127,23 +139,6 @@ class KeyDataManager private constructor() {
         } catch (e: Exception) {
             throw KeyDataException("Failed to encrypt key data: ${e.message}")
         }
-    }
-
-    /**
-     * 입력 키 암호화 (하위 호환성 - 단일 바이트)
-     *
-     * @param keyData 입력 데이터 (첫 번째 바이트만 사용됨 - deprecated)
-     * @throws KeyDataException
-     * @deprecated Use appendCharacter(String) instead for multi-byte support
-     */
-    @Throws(KeyDataException::class)
-    @Deprecated("Use appendCharacter(String) instead", ReplaceWith("appendCharacter(String(keyData, Charsets.UTF_8))"))
-    fun appendKeyData(keyData: ByteArray?) {
-        if (keyData == null || keyData.isEmpty()) return
-
-        // UTF-8 문자열로 변환하여 새 API 사용
-        val character = String(keyData, Charsets.UTF_8)
-        appendCharacter(character)
     }
 
     /**
@@ -181,33 +176,35 @@ class KeyDataManager private constructor() {
         // 1. 입력 데이터 제로화
         removeAllKeyData()
 
-        // 2. 대칭키 제로화
-        symmetricKey.fill(0)
+        // 2. 대칭키 + IV 제로화
+        symmetricKeyWithIV.fill(0)
 
         // 3. 암호화된 대칭키 제로화
         encryptedSymmetricKey.fill(0)
     }
 
     /**
-     * 대칭키 리턴
+     * 대칭키 + IV 리턴 (48바이트)
      *
-     * @return 대칭키 복사본 (원본 보호를 위해 복사본 반환)
+     * @return 대칭키 + IV 복사본 (원본 보호를 위해 복사본 반환)
      */
-    fun getSymmetricKey(): ByteArray {
-        return symmetricKey.copyOf()
+    fun getSymmetricKeyWithIV(): ByteArray {
+        return symmetricKeyWithIV.copyOf()
     }
 
     /**
-     * 대칭키 설정
+     * 대칭키 + IV 설정 (48바이트)
      *
-     * @param key 대칭키
+     * @param keyWithIV 48바이트 (32바이트 키 + 16바이트 IV)
      * @throws KeyDataException
      */
     @Throws(KeyDataException::class)
-    fun setSymmetricKey(key: ByteArray?) {
-        if (key == null || key.size != LEN_SYMMETRIC_KEY) return
+    fun setSymmetricKeyWithIV(keyWithIV: ByteArray?) {
+        if (keyWithIV == null || keyWithIV.size != LEN_COMBINED_KEY_IV) {
+            throw KeyDataException("Key+IV must be $LEN_COMBINED_KEY_IV bytes, got ${keyWithIV?.size}")
+        }
 
-        System.arraycopy(key, 0, symmetricKey, 0, LEN_SYMMETRIC_KEY)
+        System.arraycopy(keyWithIV, 0, symmetricKeyWithIV, 0, LEN_COMBINED_KEY_IV)
         encryptSymmetricKey()
     }
 
@@ -264,13 +261,15 @@ class KeyDataManager private constructor() {
                 // 32바이트 블록 추출
                 val encryptedBlock = encryptedKeyData.copyOfRange(offset, offset + LEN_BLOCK)
 
-                // AES 복호화 (2개의 16바이트 블록)
-                val decryptedBlock1 = AESHelper.decrypt(symmetricKey, encryptedBlock.copyOfRange(0, 16))
-                val decryptedBlock2 = AESHelper.decrypt(symmetricKey, encryptedBlock.copyOfRange(16, 32))
+                // 키와 IV 추출
+                val key = KeyManager.extractKey(symmetricKeyWithIV)
+                val iv = KeyManager.extractIV(symmetricKeyWithIV)
 
-                if (decryptedBlock1 == null || decryptedBlock2 == null) {
-                    throw KeyDataException("Failed to decrypt block at offset $offset")
-                }
+                // AES 복호화 (2개의 16바이트 블록)
+                val decryptedBlock1 = AESHelper.decrypt(key, iv, encryptedBlock.copyOfRange(0, 16))
+                val decryptedBlock2 = AESHelper.decrypt(key, iv, encryptedBlock.copyOfRange(16, 32))
+
+
 
                 // 블록 결합
                 val decryptedFull = ByteArray(LEN_BLOCK)
@@ -332,10 +331,10 @@ class KeyDataManager private constructor() {
             System.arraycopy(encryptedDataBytes, 0, result, pos, encryptedDataBytes.size)
             pos += encryptedDataBytes.size
 
-            // 3. HMAC-SHA1 (대칭키 + 암호화 데이터에 대한 MAC)
+            // 3. HMAC-SHA1 (키+IV + 암호화 데이터에 대한 MAC)
             try {
                 val dataForMac = result.copyOfRange(0, pos)
-                val mac = MACHelper.hmacSha1(symmetricKey, dataForMac)
+                val mac = MACHelper.hmacSha1(KeyManager.extractKey(symmetricKeyWithIV), dataForMac)
                     ?: throw KeyDataException("Failed to generate MAC")
                 System.arraycopy(mac, 0, result, pos, LEN_MAC)
             } catch (e: KeyDataException) {
@@ -370,24 +369,26 @@ class KeyDataManager private constructor() {
             val inputStream = assetMgr.open("vkeypad_public.pem")
 
             val publicKey = RSAHelper.loadPublicKey(inputStream)
-            val encrypted = RSAHelper.encrypt(publicKey, symmetricKey)
-                ?: throw KeyDataException("RSA encryption returned null")
+
+            // RSA 공개키로 키+IV 암호화 (48바이트 → 256바이트)
+            val encrypted = RSAHelper.encrypt(publicKey, symmetricKeyWithIV)
+            if (encrypted == null || encrypted.isEmpty()) {
+                throw KeyDataException("Failed to encrypt symmetric key with IV.")
+            }
 
             System.arraycopy(encrypted, 0, encryptedSymmetricKey, 0, LEN_ASYMMETRIC_KEY)
-
-            inputStream.close()
         } catch (e: IOException) {
             throw KeyDataException("Couldn't find RSA public key file: ${e.message}")
-        } catch (e: KeyDataException) {
-            throw e
         } catch (e: Exception) {
             throw KeyDataException("Failed to encrypt symmetric key: ${e.message}")
         }
     }
 
     companion object {
-        private const val LEN_SYMMETRIC_KEY = 16      // AES-128 키 길이
-        private const val LEN_ASYMMETRIC_KEY = 256    // RSA-2048 암호문 길이
+        private const val LEN_SYMMETRIC_KEY = 32      // AES-256 키 길이 (업그레이드)
+        private const val LEN_IV = 16                 // IV 길이
+        private const val LEN_COMBINED_KEY_IV = 48    // 키 + IV 결합 (32 + 16)
+        private const val LEN_ASYMMETRIC_KEY = 256    // RSA-2048 암호문 길이 (48바이트 암호화 가능)
         private const val LEN_BLOCK = 32              // 문자당 암호화 블록 크기
         private const val MAX_CHAR_BYTES = 15         // 단일 문자 최대 바이트 (UTF-8)
         private const val LEN_MAC = 20                // HMAC-SHA1 길이
